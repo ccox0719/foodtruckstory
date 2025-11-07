@@ -1,0 +1,286 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Food Truck Story</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+</head>
+<body>
+<header class="site-header">
+  <div>
+    <h1>Food Truck Story</h1>
+    <div class="pill">Read the Crowd Prototype</div>
+  </div>
+  <div class="header-actions">
+    <button id="navMenuBtn" class="ghost tiny-btn">Open Command Menu</button>
+    <div class="header-stats">
+      <div class="pill">Day <span id="dayStat">1</span></div>
+      <div class="pill">Cash <span id="cashStatTop">$0</span></div>
+      <div class="pill">Truck <span id="truckStatTop">Hand-Me-Down Cart</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="grid primary-grid">
+    <section class="card" id="servicePanel" data-nav-title="Service Dashboard" data-nav-desc="Run the day, watch KPIs, and follow the feed.">
+      <div class="row">
+        <label class="toggle">
+          <input type="checkbox" id="hardMode" />
+          <span>Hard Mode (price sensitivity + faster clocks)</span>
+        </label>
+        <span class="right tiny">Tip: watch the feed and insights to read the crowd.</span>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <div>
+          <div class="muted tiny">Location</div>
+          <select id="location">
+            <option value="downtown">Downtown | office workers | price friendly</option>
+            <option value="park">City Park | families | mild flavors</option>
+            <option value="festival">Festival | foodies | spicy welcome</option>
+          </select>
+        </div>
+        <div>
+          <div class="muted tiny">Day Length</div>
+          <div class="row">
+            <select id="duration">
+              <option value="60">60s</option>
+              <option value="90">90s</option>
+              <option value="120">120s</option>
+            </select>
+            <button id="startBtn" class="primary">Start Day</button>
+            <button id="pauseBtn" class="ghost" disabled>Pause</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div><span class="tiny">Revenue</span><b id="rev">$0</b></div>
+        <div><span class="tiny">Profit</span><b id="profit">$0</b></div>
+        <div><span class="tiny">Satisfaction</span><b id="sat">--</b></div>
+      </div>
+      <div class="tiny muted">Profit = live revenue minus today's prep cost. Waste hurts margins.</div>
+
+      <div class="sep"></div>
+
+      <div class="row"><b>Service</b><div class="right tiny">Time</div></div>
+      <div class="progress"><div class="bar" id="timeBar" style="width:0%"></div></div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <b>Order Feed</b>
+        <span class="right tag" id="crowdHint">Crowd: unknown</span>
+      </div>
+      <div class="feed" id="feed" aria-live="polite"></div>
+
+      <div class="sticky-bottom">
+        <div class="btnbar">
+          <button id="quickSurvey" class="ghost" disabled>Ask Quick Poll</button>
+          <button id="discountBlast" class="ghost" disabled>Promo: $1 off (15 s)</button>
+          <span class="tiny right">Polls and promos reveal demand. Watch stock.</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card management-card">
+      <section class="panel nav-stage">
+        <div>
+          <div class="tiny muted">Currently viewing</div>
+          <h3 id="navStageTitle">Menu &amp; Pricing</h3>
+          <div class="tiny muted" id="navStageDesc">Toggle dishes and tune prices.</div>
+        </div>
+        <button id="navStageBtn" class="ghost tiny-btn">Switch Section</button>
+      </section>
+
+      <div class="nav-sections" id="navSections">
+        <section class="panel nav-section nav-active" id="menuPanel" data-nav-title="Menu & Pricing" data-nav-desc="Toggle dishes and tune prices." data-nav-default="true">
+          <div class="panel-header">
+            <i class="bi bi-egg-fried panel-icon"></i>
+            <div>
+              <b>Menu & Pricing</b>
+              <div class="panel-sub">Toggle items and tune prices. Inventory locks during prep.</div>
+            </div>
+          </div>
+          <div id="menuList"></div>
+          <div class="tiny mono" id="cogsNote">COGS estimate auto applies in prep.</div>
+        </section>
+
+        <section class="panel nav-section" id="insightsPanel" data-nav-title="Insights & Reports" data-nav-desc="Live hints plus post-day breakdowns.">
+          <div class="panel-header">
+            <i class="bi bi-lightning-charge-fill panel-icon"></i>
+            <div>
+              <b>Insights & Reports</b>
+              <div class="panel-sub">Live tips while the truck is open plus post-day breakdowns.</div>
+            </div>
+          </div>
+          <div id="insights"></div>
+          <div class="sep soft"></div>
+          <div id="report" class="tiny muted">Run a day to see summary, waste, and suggested adjustments.</div>
+        </section>
+
+        <section class="panel nav-section" id="hqPanel" data-nav-title="Fleet HQ" data-nav-desc="Monitor cash, storage, truck, and loans.">
+          <div class="panel-header">
+            <i class="bi bi-building-fill-gear panel-icon"></i>
+            <div>
+              <b>Fleet HQ</b>
+              <div class="panel-sub">Invest between days to snowball growth like Game Dev Story.</div>
+            </div>
+          </div>
+          <div class="hq-stats">
+            <div>
+              <div class="tiny muted">Cash on Hand</div>
+              <div class="stat" id="hqCash">$0</div>
+            </div>
+            <div>
+              <div class="tiny muted">Storage Cap</div>
+              <div class="stat" id="hqStorage">0</div>
+            </div>
+            <div>
+              <div class="tiny muted">Truck</div>
+              <div class="stat" id="hqTruck">Hand-Me-Down Cart</div>
+            </div>
+            <div>
+              <div class="tiny muted">Owned Upgrades</div>
+              <div class="stat" id="hqUpgradeCount">0</div>
+            </div>
+          </div>
+          <div class="finance-line tiny mono" id="financeLine">Daily costs pending...</div>
+          <div class="row tiny loan-row">
+            <span id="loanStatus">Loan balance: $0</span>
+            <button class="ghost tiny-btn" id="loanPayBtn">Pay $500 Loan</button>
+          </div>
+        </section>
+
+        <section class="panel nav-section" id="supplyPanel" data-nav-title="Supplies & Restock" data-nav-desc="Buy extra portions mid-day.">
+          <div class="panel-header">
+            <i class="bi bi-box-seam panel-icon"></i>
+            <div>
+              <b>Supplies & Restock</b>
+              <div class="panel-sub">Rush-order portions (storage limits still apply).</div>
+            </div>
+          </div>
+          <div id="supplyList"></div>
+          <div class="tiny muted">Supply orders cost COGS +5% and arrive instantly.</div>
+        </section>
+
+        <section class="panel nav-section" id="fleetPanel" data-nav-title="Fleet & Upgrades" data-nav-desc="Invest in bigger rigs and permanent boosts.">
+          <div class="panel-header">
+            <i class="bi bi-truck-front-fill panel-icon"></i>
+            <div>
+              <b>Fleet & Upgrades</b>
+              <div class="panel-sub">Bigger rigs add storage, throughput, and reach.</div>
+            </div>
+          </div>
+          <div class="hint">Fleet</div>
+          <div id="truckList" class="vertical-list"></div>
+          <div class="sep soft"></div>
+          <div class="hint">Permanent boosts unlock menu slots, storage, and promos.</div>
+          <div id="upgradeList" class="vertical-list"></div>
+        </section>
+
+        <section class="panel nav-section" id="campaignPanel" data-nav-title="Campaigns & Staff" data-nav-desc="Schedule marketing and manage crew slots.">
+          <div class="panel-header">
+            <i class="bi bi-megaphone-fill panel-icon"></i>
+            <div>
+              <b>Campaigns & Crew</b>
+              <div class="panel-sub">Queue promos and staff to shift modifiers.</div>
+            </div>
+          </div>
+          <div class="hint">Marketing Campaigns</div>
+          <div class="tiny" id="campaignStatus">No campaign scheduled.</div>
+          <div id="campaignList" class="vertical-list"></div>
+          <div class="sep soft"></div>
+          <div class="hint">Crew Assignments</div>
+          <div class="tiny" id="staffSummary">0 / 0 slots filled</div>
+          <div id="staffList" class="vertical-list"></div>
+        </section>
+
+        <section class="panel nav-section" id="goalsPanel" data-nav-title="Goals & Research" data-nav-desc="Pursue objectives and spend research points.">
+          <div class="panel-header">
+            <i class="bi bi-bullseye panel-icon"></i>
+            <div>
+              <b>Goals & Research</b>
+              <div class="panel-sub">Track up to two goals; reinvest earned RP.</div>
+            </div>
+          </div>
+          <div id="goalBoard" class="vertical-list"></div>
+          <div class="sep soft"></div>
+          <div class="hint">RP: <span id="researchPoints">0</span></div>
+          <div id="researchList" class="vertical-list"></div>
+        </section>
+
+        <section class="panel nav-section" id="eventsPanel" data-nav-title="City Events" data-nav-desc="Resolve city modifiers before opening.">
+          <div class="panel-header">
+            <i class="bi bi-calendar2-event panel-icon"></i>
+            <div>
+              <b>City Events</b>
+              <div class="panel-sub">Resolve city events before opening each day.</div>
+            </div>
+          </div>
+          <div id="eventPanel" class="vertical-list"></div>
+        </section>
+
+        <section class="panel nav-section" id="analyticsPanelWrap" data-nav-title="Reputation & Analytics" data-nav-desc="Watch segment sentiment and analytics perks.">
+          <div class="panel-header">
+            <i class="bi bi-graph-up-arrow panel-icon"></i>
+            <div>
+              <b>Reputation & Analytics</b>
+              <div class="panel-sub" id="reputationSummary">Segments warming up...</div>
+            </div>
+          </div>
+          <div id="analyticsPanel" class="vertical-list"></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="modal-backdrop" id="prepModal">
+  <div class="modal">
+    <div class="row">
+      <b>Prep Planner</b>
+      <span class="right tiny">Plan portions before opening. COGS is spent now.</span>
+    </div>
+    <div class="tiny muted" id="prepHint">Location demand hint will appear here.</div>
+    <div class="sep"></div>
+
+    <div class="prep-grid" id="prepGrid"></div>
+
+    <div class="sep"></div>
+    <div class="row">
+      <span class="pill-stat" id="prepCostPill">Prep Cost: $0.00</span>
+      <span class="pill-stat" id="storagePill">Storage: 0 / 0 portions</span>
+      <span class="tiny muted">Aim for roughly 75-90% sell-through.</span>
+      <span class="right tiny">Expected bars use rough location traffic.</span>
+    </div>
+
+    <div class="footer">
+      <button id="cancelPrep" class="ghost">Cancel</button>
+      <button id="confirmPrep" class="primary">Open Truck</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="navModal">
+  <div class="modal modal-nav">
+    <div class="row">
+      <b>Command Menu</b>
+      <button id="closeNavModal" class="ghost tiny-btn">Close</button>
+    </div>
+    <div class="tiny muted">Jump anywhere without scrolling. Select a card to focus that control surface.</div>
+    <div class="sep"></div>
+    <div id="navQuickLinks" class="nav-grid"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
