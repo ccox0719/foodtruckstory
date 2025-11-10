@@ -1,286 +1,412 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Food Truck Story</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Food Truck Story Console</title>
+  <meta name="description" content="Run the Freedom Bowls truck like a sim game: set the menu, price the day, roll events, and watch hype rise or fall." />
+  <link rel="icon" type="image/svg+xml" href="new_logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
 </head>
 <body>
-<header class="site-header">
-  <div>
-    <h1>Food Truck Story</h1>
-    <div class="pill">Read the Crowd Prototype</div>
-  </div>
-  <div class="header-actions">
-    <button id="navMenuBtn" class="ghost tiny-btn">Open Command Menu</button>
-    <div class="header-stats">
-      <div class="pill">Day <span id="dayStat">1</span></div>
-      <div class="pill">Cash <span id="cashStatTop">$0</span></div>
-      <div class="pill">Truck <span id="truckStatTop">Hand-Me-Down Cart</span></div>
-    </div>
-  </div>
-</header>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="glow-mask" aria-hidden="true"></div>
 
-<main>
-  <div class="grid primary-grid">
-    <section class="card" id="servicePanel" data-nav-title="Service Dashboard" data-nav-desc="Run the day, watch KPIs, and follow the feed.">
-      <div class="row">
-        <label class="toggle">
-          <input type="checkbox" id="hardMode" />
-          <span>Hard Mode (price sensitivity + faster clocks)</span>
-        </label>
-        <span class="right tiny">Tip: watch the feed and insights to read the crowd.</span>
+  <div class="app-shell" id="top">
+
+    <section class="phase-track" aria-label="Shift guide">
+      <div class="phase-track-head">
+        <p class="eyebrow">Campaign flow</p>
+        <p class="phase-tip" id="phase-tip">Lock prep to unlock service.</p>
       </div>
-
-      <div class="sep"></div>
-
-      <div class="row">
-        <div>
-          <div class="muted tiny">Location</div>
-          <select id="location">
-            <option value="downtown">Downtown | office workers | price friendly</option>
-            <option value="park">City Park | families | mild flavors</option>
-            <option value="festival">Festival | foodies | spicy welcome</option>
-          </select>
-        </div>
-        <div>
-          <div class="muted tiny">Day Length</div>
-          <div class="row">
-            <select id="duration">
-              <option value="60">60s</option>
-              <option value="90">90s</option>
-              <option value="120">120s</option>
-            </select>
-            <button id="startBtn" class="primary">Start Day</button>
-            <button id="pauseBtn" class="ghost" disabled>Pause</button>
+      <div class="phase-track-grid">
+        <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
+          <span class="phase-node-step">01</span>
+          <span class="phase-node-icon"><i class="bi bi-backpack2"></i></span>
+          <div>
+            <p class="phase-node-title">Prep</p>
+            <p class="phase-node-desc">Draft lineup · stock supplies</p>
           </div>
+        </a>
+        <a class="phase-node" data-phase-node="service" href="#phase-service">
+          <span class="phase-node-step">02</span>
+          <span class="phase-node-icon"><i class="bi bi-joystick"></i></span>
+          <div>
+            <p class="phase-node-title">Service sim</p>
+            <p class="phase-node-desc">Roll events · fire commands</p>
+          </div>
+        </a>
+        <a class="phase-node" data-phase-node="results" href="#phase-results">
+          <span class="phase-node-step">03</span>
+          <span class="phase-node-icon"><i class="bi bi-stars"></i></span>
+          <div>
+            <p class="phase-node-title">Report</p>
+            <p class="phase-node-desc">Check hype swings · plan next</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="hud-mini" aria-label="Truck HUD">
+      <div class="mini-bar">
+        <span class="mini-icon"><i class="bi bi-calendar-week"></i></span>
+        <div class="mini-track">
+          <span class="mini-label">Day</span>
+          <span class="mini-value" id="hud-day">1</span>
         </div>
       </div>
-
-      <div class="kpi">
-        <div><span class="tiny">Revenue</span><b id="rev">$0</b></div>
-        <div><span class="tiny">Profit</span><b id="profit">$0</b></div>
-        <div><span class="tiny">Satisfaction</span><b id="sat">--</b></div>
+      <div class="mini-bar">
+        <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
+        <div class="mini-track">
+          <span class="mini-label">Bank</span>
+          <span class="mini-value" id="hud-money">$0</span>
+        </div>
       </div>
-      <div class="tiny muted">Profit = live revenue minus today's prep cost. Waste hurts margins.</div>
-
-      <div class="sep"></div>
-
-      <div class="row"><b>Service</b><div class="right tiny">Time</div></div>
-      <div class="progress"><div class="bar" id="timeBar" style="width:0%"></div></div>
-
-      <div class="sep"></div>
-
-      <div class="row">
-        <b>Order Feed</b>
-        <span class="right tag" id="crowdHint">Crowd: unknown</span>
+      <div class="mini-bar">
+        <span class="mini-icon"><i class="bi bi-lightning-charge"></i></span>
+        <div class="mini-track">
+          <span class="mini-label">Hype</span>
+          <div class="mini-progress"><span id="hud-hype">0</span><div class="mini-progress-bar" id="hype-bar"></div></div>
+        </div>
       </div>
-      <div class="feed" id="feed" aria-live="polite"></div>
-
-      <div class="sticky-bottom">
-        <div class="btnbar">
-          <button id="quickSurvey" class="ghost" disabled>Ask Quick Poll</button>
-          <button id="discountBlast" class="ghost" disabled>Promo: $1 off (15 s)</button>
-          <span class="tiny right">Polls and promos reveal demand. Watch stock.</span>
+      <div class="mini-bar">
+        <span class="mini-icon"><i class="bi bi-star-fill"></i></span>
+        <div class="mini-track">
+          <span class="mini-label">Rep</span>
+          <div class="mini-progress"><span id="hud-rep">0</span><div class="mini-progress-bar alt" id="rep-bar"></div></div>
+        </div>
+      </div>
+      <div class="mini-bar danger">
+        <span class="mini-icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <div class="mini-track">
+          <span class="mini-label">Strikes</span>
+          <span class="mini-value" id="hud-strikes">0 / 3</span>
         </div>
       </div>
     </section>
 
-    <aside class="card management-card">
-      <section class="panel nav-stage">
-        <div>
-          <div class="tiny muted">Currently viewing</div>
-          <h3 id="navStageTitle">Menu &amp; Pricing</h3>
-          <div class="tiny muted" id="navStageDesc">Toggle dishes and tune prices.</div>
+    <section class="systems panel" id="systems">
+      <div class="systems-grid">
+        <article class="system-card">
+          <span class="system-icon"><i class="bi bi-speedometer2"></i></span>
+          <div class="system-copy">
+            <p class="system-label">Truck speed</p>
+            <p class="system-value" id="stat-speed">1.00x</p>
+            <p class="system-sub">Speed</p>
+          </div>
+        </article>
+        <article class="system-card">
+          <span class="system-icon"><i class="bi bi-people"></i></span>
+          <div class="system-copy">
+            <p class="system-label">Truck capacity</p>
+            <p class="system-value" id="stat-capacity">28 guests</p>
+            <p class="system-sub">Max guests</p>
+          </div>
+        </article>
+        <article class="system-card">
+          <span class="system-icon"><i class="bi bi-lightning"></i></span>
+          <div class="system-copy">
+            <p class="system-label">Staff efficiency</p>
+            <p class="system-value" id="stat-efficiency">1.00x</p>
+            <p class="system-sub">Flow</p>
+          </div>
+        </article>
+        <article class="system-card">
+          <span class="system-icon"><i class="bi bi-heart"></i></span>
+          <div class="system-copy">
+            <p class="system-label">Staff charm</p>
+            <p class="system-value" id="stat-charm">1.00x</p>
+            <p class="system-sub">Charm</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <main class="game-grid">
+      <section class="panel prep-panel" id="phase-prep">
+        <div class="prep-columns">
+          <div class="prep-column side-stack">
+            <div class="helper-panel">
+              <div>
+                <p class="panel-title"><i class="bi bi-people"></i> Hire helper</p>
+                <p class="helper-note" id="helper-note">Solo shift: no daily cost.</p>
+              </div>
+              <select id="helper-select" aria-label="Helper selection"></select>
+            </div>
+            <div class="supply-panel">
+              <div class="supply-head">
+                <p class="panel-title"><i class="bi bi-basket2"></i> Supplies</p>
+                <p class="supply-meta" id="supply-stock">Stock: 0</p>
+              </div>
+              <label for="supply-input">Purchase servings</label>
+              <div class="supply-input">
+                <input type="number" id="supply-input" min="0" max="80" step="5" value="20" />
+                <span class="supply-cost" id="supply-cost">$0</span>
+              </div>
+              <p class="supply-carry" id="supply-carry">Carryover: 0 (Fresh)</p>
+              <p class="supply-risk" id="supply-risk">Risk: Low</p>
+              <div class="supply-actions">
+                <button type="button" class="btn tertiary" id="supply-discard"><i class="bi bi-trash"></i> Dump stock</button>
+              </div>
+            </div>
+            <div class="audience-panel">
+              <div class="forecast-card">
+                <p class="panel-title"><i class="bi bi-people-fill"></i> Audience</p>
+                <h3 id="audience-name">Market Lunch Crowd</h3>
+                <p id="audience-desc">Fast office group looking for handheld freshness.</p>
+                <p class="audience-clue" id="audience-clue">Clue: quick bites, crisp bite.</p>
+                <div class="forecast-tags">
+                  <span class="forecast-tag" id="audience-form">Grab-n-go</span>
+                  <span class="forecast-tag" id="audience-flavor">Garden chill</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="prep-column lab-column">
+            <div class="lab-panel">
+              <div class="lab-head">
+                <p class="panel-title"><i class="bi bi-bezier"></i> Recipe lab</p>
+                <p class="lab-status" id="lab-status">Pick a format + ingredient kit to craft.</p>
+              </div>
+              <div class="lab-grid">
+                <label>
+                  Format
+                  <select id="lab-form"></select>
+                </label>
+                <label>
+                  Flavor
+                  <select id="lab-flavor"></select>
+                </label>
+                <label>
+                  Codename
+                  <input type="text" id="lab-name" placeholder="Auto from kit" />
+                </label>
+              </div>
+              <div class="lab-kit-panel">
+                <p class="mini-label">Ingredient kits</p>
+                <div class="lab-kit-grid" id="lab-kit-grid"></div>
+              </div>
+              <div class="lab-preview" id="lab-preview">
+                <p>Select a format + ingredient kit to preview stats.</p>
+              </div>
+              <div class="lab-actions">
+                <button class="btn primary" type="button" id="lab-create" disabled>Craft combo</button>
+                <button class="btn ghost" type="button" id="lab-reset">Clear library</button>
+              </div>
+              <p class="lab-tip">Risk badges flag reliable staples vs. high-risk experiments. Creative kits can spike hype but may anger the line.</p>
+            </div>
+          </div>
+          <div class="prep-column lineup-column">
+            <header>
+              <p class="eyebrow">Prep phase</p>
+              <h2>Program the lineup</h2>
+              <p id="prep-note">Recipe Lab: craft combos, then slot up to 3.</p>
+            </header>
+            <div class="dish-grid" id="dish-grid"></div>
+            <footer>
+              <p class="foot" id="prep-selection">0 / 3 dishes selected</p>
+            </footer>
+            <div class="prep-actions">
+              <button class="btn primary" type="button" id="start-day">Start day</button>
+            </div>
+          </div>
         </div>
-        <button id="navStageBtn" class="ghost tiny-btn">Switch Section</button>
       </section>
 
-      <div class="nav-sections" id="navSections">
-        <section class="panel nav-section nav-active" id="menuPanel" data-nav-title="Menu & Pricing" data-nav-desc="Toggle dishes and tune prices." data-nav-default="true">
-          <div class="panel-header">
-            <i class="bi bi-egg-fried panel-icon"></i>
-            <div>
-              <b>Menu & Pricing</b>
-              <div class="panel-sub">Toggle items and tune prices. Inventory locks during prep.</div>
+      <section class="panel phase service-phase" id="phase-service">
+        <div class="phase-head">
+          <span class="phase-tag">02 · Service simulation</span>
+          <h2>Roll events + run tickets</h2>
+        </div>
+        <div class="service-pricing">
+          <div class="price-panel">
+            <p class="panel-title"><i class="bi bi-tags"></i> Live price point</p>
+            <p class="price-note">Adjust tickets mid-sim to react to events.</p>
+            <div class="price-options">
+              <label><input type="radio" name="price-point" value="street" checked /><span>Street</span></label>
+              <label><input type="radio" name="price-point" value="market" /><span>Market</span></label>
+              <label><input type="radio" name="price-point" value="premium" /><span>Premium</span></label>
             </div>
           </div>
-          <div id="menuList"></div>
-          <div class="tiny mono" id="cogsNote">COGS estimate auto applies in prep.</div>
-        </section>
+        </div>
+        <div class="event-card">
+          <div class="event-meta">
+            <p class="eyebrow">Event modifier</p>
+            <h3 id="event-name">Waiting for prep</h3>
+          </div>
+          <p id="event-description">Start the day to roll weather, critic, or rush events.</p>
+          <ul class="event-effects" id="event-effects"></ul>
+        </div>
+        <div class="service-stats">
+          <div><span class="label">Served</span><span class="value" id="stat-served">0</span></div>
+          <div><span class="label">Angry</span><span class="value" id="stat-angry">0</span></div>
+          <div><span class="label">Avg wait</span><span class="value" id="stat-wait">0 min</span></div>
+          <div><span class="label">Revenue</span><span class="value" id="stat-revenue">$0</span></div>
+        </div>
+        <div class="service-hints" aria-live="polite">
+          <div class="hint-head">
+            <p class="panel-title"><i class="bi bi-megaphone"></i> Intel</p>
+            <p class="hint-sub">Radio + papers drop cues.</p>
+          </div>
+          <ul class="hint-list" id="hint-list"></ul>
+        </div>
+        <div class="stock-forecast">
+          <p class="panel-title"><i class="bi bi-box-seam"></i> Stock forecast</p>
+          <div class="stock-grid">
+            <div>
+              <span class="label">On truck</span>
+              <span class="value" id="forecast-stock">0 serv</span>
+            </div>
+            <div>
+              <span class="label">Projected demand</span>
+              <span class="value" id="forecast-demand">0 serv</span>
+            </div>
+            <div>
+              <span class="label">Sellout</span>
+              <span class="value" id="forecast-sellout">--</span>
+            </div>
+          </div>
+          <p class="stock-note" id="stock-note">Forecast updates after prep.</p>
+        </div>
+        <div class="service-progress">
+          <div class="progress">
+            <div class="progress-bar accent" id="service-bar"></div>
+          </div>
+          <p id="service-status">Prep dishes, then hit start.</p>
+        </div>
+        <div class="service-feed" id="service-feed" aria-live="polite"></div>
+        <div class="service-commands">
+          <p class="panel-title"><i class="bi bi-controller"></i> Commands</p>
+          <div class="command-buttons" id="command-grid"></div>
+          <p class="command-note" id="command-note">Commands unlock mid-service. Cooldowns + targeting are shown below each label.</p>
+        </div>
+        <div class="service-controls">
+          <button class="btn ghost" type="button" id="pause-day" disabled>Pause</button>
+        </div>
+      </section>
 
-        <section class="panel nav-section" id="insightsPanel" data-nav-title="Insights & Reports" data-nav-desc="Live hints plus post-day breakdowns.">
-          <div class="panel-header">
-            <i class="bi bi-lightning-charge-fill panel-icon"></i>
-            <div>
-              <b>Insights & Reports</b>
-              <div class="panel-sub">Live tips while the truck is open plus post-day breakdowns.</div>
-            </div>
+      <section class="panel phase results-phase" id="phase-results">
+        <div class="phase-head">
+          <span class="phase-tag">03 · Results</span>
+          <h2>Profit, rating, hype swings</h2>
+        </div>
+        <div class="results-grid">
+          <div>
+            <p class="label">Profit</p>
+            <p class="value" id="result-profit">$0</p>
           </div>
-          <div id="insights"></div>
-          <div class="sep soft"></div>
-          <div id="report" class="tiny muted">Run a day to see summary, waste, and suggested adjustments.</div>
-        </section>
+          <div>
+            <p class="label">Rating</p>
+            <p class="value" id="result-rating">—</p>
+          </div>
+          <div>
+            <p class="label">Hype shift</p>
+            <p class="value" id="result-hype">0</p>
+          </div>
+          <div>
+            <p class="label">Rep shift</p>
+            <p class="value" id="result-rep">0</p>
+          </div>
+        </div>
+        <div class="results-cta">
+          <div>
+            <p class="eyebrow">Arcade recap</p>
+            <p>Launch the hype report to view animated swings and get nudged to the next phase.</p>
+          </div>
+          <button class="btn primary" type="button" id="results-modal-trigger"><i class="bi bi-play-circle"></i> Open hype report</button>
+        </div>
+        <div class="economy-breakdown">
+          <div><p>Revenue</p><p id="breakdown-revenue">$0</p></div>
+          <div><p>Expenses</p><p id="breakdown-expenses">$0</p></div>
+          <div><p>Ingredient</p><p id="breakdown-ingredient">$0</p></div>
+          <div><p>Supplies</p><p id="breakdown-supplies">$0</p></div>
+          <div><p>Staff</p><p id="breakdown-staff">$0</p></div>
+          <div><p>Upkeep</p><p id="breakdown-upkeep">$0</p></div>
+        </div>
+        <div class="lineup-breakdown">
+          <div class="lineup-head">
+            <p class="panel-title"><i class="bi bi-graph-up"></i> Lineup breakdown</p>
+            <p class="mini-label">Servings · anger · clue notes</p>
+          </div>
+          <ul class="dish-telemetry" id="dish-telemetry"></ul>
+        </div>
+        <p id="results-summary">Finish a service day to see what changed.</p>
+        <div class="result-actions">
+          <button class="btn secondary" type="button" id="next-day" disabled>Next day</button>
+          <button class="btn ghost" type="button" id="reset-campaign">Reset campaign</button>
+        </div>
+      </section>
+    </main>
 
-        <section class="panel nav-section" id="hqPanel" data-nav-title="Fleet HQ" data-nav-desc="Monitor cash, storage, truck, and loans.">
-          <div class="panel-header">
-            <i class="bi bi-building-fill-gear panel-icon"></i>
-            <div>
-              <b>Fleet HQ</b>
-              <div class="panel-sub">Invest between days to snowball growth like Game Dev Story.</div>
-            </div>
-          </div>
-          <div class="hq-stats">
-            <div>
-              <div class="tiny muted">Cash on Hand</div>
-              <div class="stat" id="hqCash">$0</div>
-            </div>
-            <div>
-              <div class="tiny muted">Storage Cap</div>
-              <div class="stat" id="hqStorage">0</div>
-            </div>
-            <div>
-              <div class="tiny muted">Truck</div>
-              <div class="stat" id="hqTruck">Hand-Me-Down Cart</div>
-            </div>
-            <div>
-              <div class="tiny muted">Owned Upgrades</div>
-              <div class="stat" id="hqUpgradeCount">0</div>
-            </div>
-          </div>
-          <div class="finance-line tiny mono" id="financeLine">Daily costs pending...</div>
-          <div class="row tiny loan-row">
-            <span id="loanStatus">Loan balance: $0</span>
-            <button class="ghost tiny-btn" id="loanPayBtn">Pay $500 Loan</button>
-          </div>
-        </section>
-
-        <section class="panel nav-section" id="supplyPanel" data-nav-title="Supplies & Restock" data-nav-desc="Buy extra portions mid-day.">
-          <div class="panel-header">
-            <i class="bi bi-box-seam panel-icon"></i>
-            <div>
-              <b>Supplies & Restock</b>
-              <div class="panel-sub">Rush-order portions (storage limits still apply).</div>
-            </div>
-          </div>
-          <div id="supplyList"></div>
-          <div class="tiny muted">Supply orders cost COGS +5% and arrive instantly.</div>
-        </section>
-
-        <section class="panel nav-section" id="fleetPanel" data-nav-title="Fleet & Upgrades" data-nav-desc="Invest in bigger rigs and permanent boosts.">
-          <div class="panel-header">
-            <i class="bi bi-truck-front-fill panel-icon"></i>
-            <div>
-              <b>Fleet & Upgrades</b>
-              <div class="panel-sub">Bigger rigs add storage, throughput, and reach.</div>
-            </div>
-          </div>
-          <div class="hint">Fleet</div>
-          <div id="truckList" class="vertical-list"></div>
-          <div class="sep soft"></div>
-          <div class="hint">Permanent boosts unlock menu slots, storage, and promos.</div>
-          <div id="upgradeList" class="vertical-list"></div>
-        </section>
-
-        <section class="panel nav-section" id="campaignPanel" data-nav-title="Campaigns & Staff" data-nav-desc="Schedule marketing and manage crew slots.">
-          <div class="panel-header">
-            <i class="bi bi-megaphone-fill panel-icon"></i>
-            <div>
-              <b>Campaigns & Crew</b>
-              <div class="panel-sub">Queue promos and staff to shift modifiers.</div>
-            </div>
-          </div>
-          <div class="hint">Marketing Campaigns</div>
-          <div class="tiny" id="campaignStatus">No campaign scheduled.</div>
-          <div id="campaignList" class="vertical-list"></div>
-          <div class="sep soft"></div>
-          <div class="hint">Crew Assignments</div>
-          <div class="tiny" id="staffSummary">0 / 0 slots filled</div>
-          <div id="staffList" class="vertical-list"></div>
-        </section>
-
-        <section class="panel nav-section" id="goalsPanel" data-nav-title="Goals & Research" data-nav-desc="Pursue objectives and spend research points.">
-          <div class="panel-header">
-            <i class="bi bi-bullseye panel-icon"></i>
-            <div>
-              <b>Goals & Research</b>
-              <div class="panel-sub">Track up to two goals; reinvest earned RP.</div>
-            </div>
-          </div>
-          <div id="goalBoard" class="vertical-list"></div>
-          <div class="sep soft"></div>
-          <div class="hint">RP: <span id="researchPoints">0</span></div>
-          <div id="researchList" class="vertical-list"></div>
-        </section>
-
-        <section class="panel nav-section" id="eventsPanel" data-nav-title="City Events" data-nav-desc="Resolve city modifiers before opening.">
-          <div class="panel-header">
-            <i class="bi bi-calendar2-event panel-icon"></i>
-            <div>
-              <b>City Events</b>
-              <div class="panel-sub">Resolve city events before opening each day.</div>
-            </div>
-          </div>
-          <div id="eventPanel" class="vertical-list"></div>
-        </section>
-
-        <section class="panel nav-section" id="analyticsPanelWrap" data-nav-title="Reputation & Analytics" data-nav-desc="Watch segment sentiment and analytics perks.">
-          <div class="panel-header">
-            <i class="bi bi-graph-up-arrow panel-icon"></i>
-            <div>
-              <b>Reputation & Analytics</b>
-              <div class="panel-sub" id="reputationSummary">Segments warming up...</div>
-            </div>
-          </div>
-          <div id="analyticsPanel" class="vertical-list"></div>
-        </section>
+  <div class="results-modal" id="results-modal" aria-hidden="true">
+    <div class="results-modal-card" role="dialog" aria-modal="true" aria-labelledby="results-modal-title">
+      <button class="modal-close" type="button" id="results-close" aria-label="Close hype report"><i class="bi bi-x-lg"></i></button>
+      <p class="eyebrow">Hype report</p>
+      <h2 id="results-modal-title">Shift recap</h2>
+      <p class="modal-summary" id="modal-summary">Finish a service day to see what changed.</p>
+      <div class="results-modal-grid">
+        <article>
+          <p class="label">Profit</p>
+          <p class="value" id="modal-profit">$0</p>
+          <p class="stat-note">after expenses</p>
+        </article>
+        <article>
+          <p class="label">Rating</p>
+          <p class="value" id="modal-rating">—</p>
+          <p class="stat-note">service score</p>
+        </article>
+        <article>
+          <p class="label">Hype shift</p>
+          <p class="value" id="modal-hype-delta">0</p>
+          <p class="stat-note">crowd energy</p>
+        </article>
+        <article>
+          <p class="label">Rep shift</p>
+          <p class="value" id="modal-rep-delta">0</p>
+          <p class="stat-note">critic vibe</p>
+        </article>
       </div>
-    </aside>
-  </div>
-</main>
-
-<div class="modal-backdrop" id="prepModal">
-  <div class="modal">
-    <div class="row">
-      <b>Prep Planner</b>
-      <span class="right tiny">Plan portions before opening. COGS is spent now.</span>
-    </div>
-    <div class="tiny muted" id="prepHint">Location demand hint will appear here.</div>
-    <div class="sep"></div>
-
-    <div class="prep-grid" id="prepGrid"></div>
-
-    <div class="sep"></div>
-    <div class="row">
-      <span class="pill-stat" id="prepCostPill">Prep Cost: $0.00</span>
-      <span class="pill-stat" id="storagePill">Storage: 0 / 0 portions</span>
-      <span class="tiny muted">Aim for roughly 75-90% sell-through.</span>
-      <span class="right tiny">Expected bars use rough location traffic.</span>
-    </div>
-
-    <div class="footer">
-      <button id="cancelPrep" class="ghost">Cancel</button>
-      <button id="confirmPrep" class="primary">Open Truck</button>
+      <div class="modal-meter-stack">
+        <div class="modal-meter">
+          <div class="modal-meter-head">
+            <span>Current hype</span>
+            <span id="modal-hype-total">0</span>
+          </div>
+          <div class="modal-meter-track">
+            <div class="modal-meter-bar" id="modal-hype-meter"></div>
+          </div>
+        </div>
+        <div class="modal-meter">
+          <div class="modal-meter-head">
+            <span>Current reputation</span>
+            <span id="modal-rep-total">0</span>
+          </div>
+          <div class="modal-meter-track">
+            <div class="modal-meter-bar alt" id="modal-rep-meter"></div>
+          </div>
+        </div>
+      </div>
+      <div class="results-modal-actions">
+        <button class="btn primary" type="button" id="modal-next-day">Next day</button>
+        <button class="btn secondary" type="button" id="modal-stay">Back to prep</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="modal-backdrop" id="navModal">
-  <div class="modal modal-nav">
-    <div class="row">
-      <b>Command Menu</b>
-      <button id="closeNavModal" class="ghost tiny-btn">Close</button>
+  <div class="fail-overlay" id="fail-overlay" aria-hidden="true">
+    <div class="fail-card">
+      <p class="eyebrow">Campaign Failed</p>
+      <h2 id="fail-reason">Out of cash</h2>
+      <p id="fail-detail">You ran out of funds before the next stop.</p>
+      <button class="btn primary" type="button" id="fail-reset">Restart run</button>
     </div>
-    <div class="tiny muted">Jump anywhere without scrolling. Select a card to focus that control surface.</div>
-    <div class="sep"></div>
-    <div id="navQuickLinks" class="nav-grid"></div>
   </div>
-</div>
+  </div>
 
-<script src="data.js"></script>
-<script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
-
