@@ -734,6 +734,416 @@ const SERVICE_COMMANDS = {
   },
 };
 
+const UPGRADE_DECK = [
+  {
+    id: 'truck_suspension',
+    category: 'truck',
+    name: 'Reinforced Suspension',
+    cost: 450,
+    upkeep: 0,
+    effects: {
+      speed_mult: 1.1,
+      hype_daily_bonus: 1,
+    },
+    unlock_requirements: [],
+    description: 'Smoother ride and tighter handling. Slightly faster line flow.',
+  },
+  {
+    id: 'truck_second_window',
+    category: 'truck',
+    name: 'Dual Service Window',
+    cost: 900,
+    upkeep: 5,
+    effects: {
+      capacity_add: 6,
+      speed_mult: 1.05,
+    },
+    unlock_requirements: ['truck_suspension'],
+    description: 'Open a second window to handle more guests during rushes.',
+  },
+  {
+    id: 'truck_hotbox',
+    category: 'truck',
+    name: 'Insulated Hot Hold Box',
+    cost: 600,
+    upkeep: 3,
+    effects: {
+      angry_reduction_pct: 10,
+      waste_reduction_pct: 10,
+    },
+    unlock_requirements: ['truck_second_window'],
+    description: 'Keeps food warm longer, reducing angry guests and waste.',
+  },
+  {
+    id: 'truck_vent_system',
+    category: 'truck',
+    name: 'High-Flow Vent System',
+    cost: 1200,
+    upkeep: 6,
+    effects: {
+      speed_mult: 1.1,
+      staff_efficiency_mult: 1.05,
+    },
+    unlock_requirements: ['truck_hotbox'],
+    description: 'Powerful airflow improves cooking performance and kitchen comfort.',
+  },
+  {
+    id: 'equip_griddle_plate',
+    category: 'equipment',
+    name: 'Cast Iron Griddle Plate',
+    cost: 350,
+    upkeep: 0,
+    effects: {
+      cook_speed_pct: 15,
+    },
+    unlock_requirements: [],
+    description: 'Heats evenly and cooks faster. Great for bowls and wraps.',
+  },
+  {
+    id: 'equip_sous_vide',
+    category: 'equipment',
+    name: 'Precision Sous-Vide Station',
+    cost: 500,
+    upkeep: 0,
+    effects: {
+      signature_unlock: 'tender',
+      hype_on_meat_dishes: 2,
+    },
+    unlock_requirements: ['equip_griddle_plate'],
+    description: 'Tender, consistent meats. Unlocks premium meat kits.',
+  },
+  {
+    id: 'equip_double_rice',
+    category: 'equipment',
+    name: 'Double-Batch Rice Cooker',
+    cost: 450,
+    upkeep: 0,
+    effects: {
+      servings_capacity_add: 8,
+      revenue_rice_dishes_pct: 5,
+    },
+    unlock_requirements: [],
+    description: 'Cook more rice per cycle and improve bowl profitability.',
+  },
+  {
+    id: 'equip_steam_well',
+    category: 'equipment',
+    name: 'Double-Well Steam Table',
+    cost: 700,
+    upkeep: 3,
+    effects: {
+      angry_reduction_pct: 10,
+    },
+    unlock_requirements: ['equip_double_rice'],
+    description: 'Keeps food hot and reduces line frustration during rushes.',
+  },
+  {
+    id: 'equip_cold_line',
+    category: 'equipment',
+    name: 'Expanded Cold Line',
+    cost: 520,
+    upkeep: 2,
+    effects: {
+      fresh_unlock: true,
+      rating_ceiling_add: 1,
+    },
+    unlock_requirements: [],
+    description: 'More room for crisp toppings. Fresh dishes get better scores.',
+  },
+  {
+    id: 'staff_training_1',
+    category: 'staff',
+    name: 'Helper Training I',
+    cost: 300,
+    upkeep: 0,
+    effects: {
+      efficiency_mult: 1.05,
+    },
+    unlock_requirements: [],
+    description: 'Basic training that improves flow during busy periods.',
+  },
+  {
+    id: 'staff_training_2',
+    category: 'staff',
+    name: 'Helper Training II',
+    cost: 500,
+    upkeep: 2,
+    effects: {
+      command_unlock: 'fast_pass',
+    },
+    unlock_requirements: ['staff_training_1'],
+    description: 'Advanced training unlocks a once-per-day Fast Pass command.',
+  },
+  {
+    id: 'staff_barista',
+    category: 'staff',
+    name: 'Barista Certification',
+    cost: 650,
+    upkeep: 3,
+    effects: {
+      drink_revenue_pct: 15,
+      drinks_unlocked: true,
+    },
+    unlock_requirements: [],
+    description: 'Opens a drink menu and improves profit margins.',
+  },
+  {
+    id: 'staff_charm',
+    category: 'staff',
+    name: 'Front-of-House Charm Boost',
+    cost: 500,
+    upkeep: 0,
+    effects: {
+      charm_mult: 1.1,
+    },
+    unlock_requirements: [],
+    description: 'Improve customer rapport. Ratings climb more easily.',
+  },
+  {
+    id: 'brand_signage',
+    category: 'brand',
+    name: 'Branding Kit I',
+    cost: 400,
+    upkeep: 0,
+    effects: {
+      hype_daily_bonus: 3,
+    },
+    unlock_requirements: [],
+    description: 'Better signage helps boost morning hype.',
+  },
+  {
+    id: 'brand_social',
+    category: 'brand',
+    name: 'Branding Kit II',
+    cost: 650,
+    upkeep: 0,
+    effects: {
+      hype_random_range: [1, 3],
+    },
+    unlock_requirements: ['brand_signage'],
+    description: 'Social media buzz adds small random hype after service.',
+  },
+  {
+    id: 'brand_smoker',
+    category: 'brand',
+    name: 'Smoker Upgrade',
+    cost: 700,
+    upkeep: 3,
+    effects: {
+      unlock_flavor_tier: 'smoke_2',
+      trend_chance_smoke_pct: 10,
+    },
+    unlock_requirements: [],
+    description: 'More smoke, more trend potential. Unlock tier 2 smoke kits.',
+  },
+  {
+    id: 'brand_fusion',
+    category: 'brand',
+    name: 'Fusion Line Unlock',
+    cost: 900,
+    upkeep: 6,
+    effects: {
+      unlock_dual_flavors: true,
+    },
+    unlock_requirements: ['brand_social'],
+    description: 'Combine flavors like Tropical Heat and Garden Fresh.',
+  },
+  {
+    id: 'brand_premium',
+    category: 'brand',
+    name: 'Premium Ingredient License',
+    cost: 1200,
+    upkeep: 10,
+    effects: {
+      unlock_premium: true,
+      price_point_add: 2,
+      rating_ceiling_add: 2,
+    },
+    unlock_requirements: [],
+    description: 'Access premium ingredients and boost your rating potential.',
+  },
+  {
+    id: 'econ_fuel',
+    category: 'economy',
+    name: 'Fuel Efficiency Mods',
+    cost: 300,
+    upkeep: -2,
+    effects: {
+      upkeep_reduction_pct: 10,
+    },
+    unlock_requirements: [],
+    description: 'Better mileage reduces daily expenses.',
+  },
+  {
+    id: 'econ_bulk',
+    category: 'economy',
+    name: 'Bulk Supplier Contract',
+    cost: 350,
+    upkeep: 0,
+    effects: {
+      supplies_cost_pct: -15,
+      old_stock_risk_add: 5,
+    },
+    unlock_requirements: [],
+    description: 'Cheaper supplies but higher risk when carrying over stock.',
+  },
+  {
+    id: 'econ_loyalty',
+    category: 'economy',
+    name: 'VIP Loyalty Program',
+    cost: 500,
+    upkeep: 3,
+    effects: {
+      repeat_revenue_pct: 5,
+      critic_harshness_pct: -5,
+    },
+    unlock_requirements: [],
+    description: 'Encourages returning fans and softens critic scores.',
+  },
+  {
+    id: 'econ_weather',
+    category: 'economy',
+    name: 'Weather Shielding',
+    cost: 480,
+    upkeep: 2,
+    effects: {
+      weather_penalty_pct: -50,
+    },
+    unlock_requirements: [],
+    description: 'Reduces negative effects from bad weather.',
+  },
+];
+
+const UPGRADE_CATEGORY_META = {
+  truck: { label: 'Truck systems', blurb: 'Capacity, speed, and flow control.' },
+  equipment: { label: 'Kitchen gear', blurb: 'Prep stations that unlock formats.' },
+  staff: { label: 'Crew development', blurb: 'Boost helpers, unlock commands.' },
+  brand: { label: 'Brand/marketing', blurb: 'Hype swings + new flavor ceilings.' },
+  economy: { label: 'Economy', blurb: 'Cost control & passive revenue.' },
+};
+
+const DIFFICULTY_STORAGE_KEY = 'fts_difficulty_tuning_v1';
+const DEFAULT_DIFFICULTY = Object.freeze({
+  upkeepMultiplier: 1,
+  ingredientCostMultiplier: 1,
+  helperCostMultiplier: 1,
+  turnoutMultiplier: 1,
+  hypeDeltaMultiplier: 1,
+  eventEffectMultiplier: 1,
+  serviceSpeedMultiplier: 1,
+  angryTolerance: 1,
+  spoilageRiskMultiplier: 1,
+});
+
+const DIFFICULTY_FIELDS = [
+  {
+    id: 'upkeepMultiplier',
+    inputId: 'difficulty-upkeep',
+    valueId: 'difficulty-upkeep-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'ingredientCostMultiplier',
+    inputId: 'difficulty-ingredient',
+    valueId: 'difficulty-ingredient-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'helperCostMultiplier',
+    inputId: 'difficulty-helper',
+    valueId: 'difficulty-helper-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'turnoutMultiplier',
+    inputId: 'difficulty-turnout',
+    valueId: 'difficulty-turnout-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'hypeDeltaMultiplier',
+    inputId: 'difficulty-hype',
+    valueId: 'difficulty-hype-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'eventEffectMultiplier',
+    inputId: 'difficulty-event',
+    valueId: 'difficulty-event-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'serviceSpeedMultiplier',
+    inputId: 'difficulty-service',
+    valueId: 'difficulty-service-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'angryTolerance',
+    inputId: 'difficulty-angry',
+    valueId: 'difficulty-angry-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.5,
+    max: 2,
+  },
+  {
+    id: 'spoilageRiskMultiplier',
+    inputId: 'difficulty-spoilage',
+    valueId: 'difficulty-spoilage-value',
+    format: (value) => `${value.toFixed(2)}×`,
+    min: 0.25,
+    max: 2,
+  },
+];
+
+const getDifficultyStorage = () => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage;
+    }
+  } catch (error) {
+    return null;
+  }
+  return null;
+};
+
+const loadDifficultySettings = () => {
+  const storage = getDifficultyStorage();
+  if (!storage) return { ...DEFAULT_DIFFICULTY };
+  try {
+    const saved = storage.getItem(DIFFICULTY_STORAGE_KEY);
+    if (!saved) return { ...DEFAULT_DIFFICULTY };
+    const parsed = JSON.parse(saved);
+    return { ...DEFAULT_DIFFICULTY, ...parsed };
+  } catch (error) {
+    return { ...DEFAULT_DIFFICULTY };
+  }
+};
+
+const persistDifficultySettings = () => {
+  const storage = getDifficultyStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(DIFFICULTY_STORAGE_KEY, JSON.stringify(state.difficulty));
+  } catch (error) {
+    // ignore persistence failures
+  }
+};
+
 const state = {
   day: 1,
   money: 520,
@@ -770,6 +1180,7 @@ const state = {
   craftedCounter: 0,
   comboHistory: {},
   lastSupplyUnitCost: SUPPLY_COST_PER_UNIT,
+  difficulty: loadDifficultySettings(),
 };
 
 const PHASE_SEQUENCE = ['prep', 'service', 'results'];
@@ -876,11 +1287,17 @@ const cacheElements = () => {
   elements.serviceBar = document.getElementById('service-bar');
   elements.serviceStatus = document.getElementById('service-status');
   elements.serviceFeed = document.getElementById('service-feed');
+  elements.serviceHints = document.getElementById('service-hints');
   elements.hintList = document.getElementById('hint-list');
   elements.startButton = document.getElementById('start-day');
   elements.pauseButton = document.getElementById('pause-day');
   elements.nextDay = document.getElementById('next-day');
   elements.resetButton = document.getElementById('reset-campaign');
+  elements.devtoolsTrigger = document.getElementById('devtools-trigger');
+  elements.devtoolsModal = document.getElementById('devtools-modal');
+  elements.devtoolsClose = document.getElementById('devtools-close');
+  elements.devtoolsCloseSecondary = document.getElementById('devtools-close-secondary');
+  elements.devtoolsReset = document.getElementById('devtools-reset');
   elements.commandContainer = document.getElementById('command-grid');
   elements.commandButtons = new Map();
   elements.commandNote = document.getElementById('command-note');
@@ -916,6 +1333,10 @@ const cacheElements = () => {
   elements.labKitGrid = document.getElementById('lab-kit-grid');
   elements.phaseTip = document.getElementById('phase-tip');
   elements.phaseNodes = document.querySelectorAll('[data-phase-node]');
+  elements.upgradesModal = document.getElementById('upgrades-modal');
+  elements.upgradesTrigger = document.getElementById('upgrades-trigger');
+  elements.upgradesClose = document.getElementById('upgrades-close');
+  elements.upgradeList = document.getElementById('upgrade-list');
   elements.resultsModal = document.getElementById('results-modal');
   elements.resultsModalTrigger = document.getElementById('results-modal-trigger');
   elements.resultsModalClose = document.getElementById('results-close');
@@ -977,6 +1398,165 @@ const renderGaugeGroup = (tiers) => `
     ${renderGauge('Pop', GAUGE_ICONS.pop, tiers.appeal, 'pop')}
   </div>
 `;
+
+const titleize = (text = '') =>
+  text
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const formatPercentValue = (value) => `${formatSigned(Math.round(value))}%`;
+const formatMultiplierPercent = (value) => formatPercentValue((value - 1) * 100);
+
+const formatCurrencySigned = (value) => {
+  if (value === 0) return '$0';
+  const symbol = value > 0 ? '+' : '-';
+  return `${symbol}$${Math.abs(value).toFixed(0)}`;
+};
+
+const describeRange = (value) => {
+  if (Array.isArray(value) && value.length === 2) {
+    return `${value[0]}-${value[1]}`;
+  }
+  return value;
+};
+
+const getUpgradeNameById = (id) => UPGRADE_DECK.find((upgrade) => upgrade.id === id)?.name || titleize(id);
+
+const formatCommandLabel = (commandId) => SERVICE_COMMANDS[commandId]?.label || titleize(commandId);
+
+const formatUpgradeEffect = (key, value) => {
+  switch (key) {
+    case 'speed_mult':
+      return `Truck speed ${formatMultiplierPercent(value)}`;
+    case 'staff_efficiency_mult':
+    case 'efficiency_mult':
+      return `Staff efficiency ${formatMultiplierPercent(value)}`;
+    case 'capacity_add':
+      return `Capacity +${value} guests`;
+    case 'servings_capacity_add':
+      return `Prep capacity +${value} servings`;
+    case 'hype_daily_bonus':
+      return `Daily hype +${value}`;
+    case 'angry_reduction_pct':
+      return `Angry guests ${formatPercentValue(-value)}`;
+    case 'waste_reduction_pct':
+      return `Waste ${formatPercentValue(-value)}`;
+    case 'cook_speed_pct':
+      return `Cook speed ${formatPercentValue(value)}`;
+    case 'hype_on_meat_dishes':
+      return `Meat dish hype +${value}`;
+    case 'revenue_rice_dishes_pct':
+      return `Rice dish revenue ${formatPercentValue(value)}`;
+    case 'rating_ceiling_add':
+      return `Rating ceiling +${value}`;
+    case 'price_point_add':
+      return `Price point ceiling +${value}`;
+    case 'signature_unlock':
+      return `Unlock signature kit: ${titleize(value)}`;
+    case 'command_unlock':
+      return `Unlock command: ${formatCommandLabel(value)}`;
+    case 'fresh_unlock':
+      return 'Unlocks Fresh line prep.';
+    case 'drinks_unlocked':
+      return 'Unlocks drink program.';
+    case 'unlock_dual_flavors':
+      return 'Unlocks dual-flavor builds.';
+    case 'unlock_premium':
+      return 'Unlocks premium ingredient tier.';
+    case 'unlock_flavor_tier':
+      return `Unlocks flavor tier ${titleize(value)}`;
+    case 'trend_chance_smoke_pct':
+      return `Smoke trend chance ${formatPercentValue(value)}`;
+    case 'hype_random_range':
+      return `Post-service hype +${describeRange(value)}`;
+    case 'upkeep_reduction_pct':
+      return `Upkeep costs ${formatPercentValue(-value)}`;
+    case 'supplies_cost_pct':
+      return `Supply costs ${formatPercentValue(value)}`;
+    case 'old_stock_risk_add':
+      return `Old stock risk ${formatPercentValue(value)}`;
+    case 'repeat_revenue_pct':
+      return `Repeat revenue ${formatPercentValue(value)}`;
+    case 'critic_harshness_pct':
+      return `Critic harshness ${formatPercentValue(value)}`;
+    case 'weather_penalty_pct':
+      return `Weather penalty ${formatPercentValue(value)}`;
+    default: {
+      if (typeof value === 'boolean') {
+        return value ? `Unlocks ${titleize(key)}` : '';
+      }
+      if (typeof value === 'number') {
+        return `${titleize(key)} ${formatSigned(Math.round(value))}`;
+      }
+      return `${titleize(key)} ${value}`;
+    }
+  }
+};
+
+const describeUpgradeEffects = (effects = {}) =>
+  Object.entries(effects)
+    .map(([key, value]) => formatUpgradeEffect(key, value))
+    .filter((line) => typeof line === 'string' && line.trim().length);
+
+const renderUpgradeDeck = () => {
+  if (!elements.upgradeList) return;
+  const sections = Object.entries(UPGRADE_CATEGORY_META)
+    .map(([category, meta]) => {
+      const upgrades = UPGRADE_DECK.filter((item) => item.category === category);
+      if (!upgrades.length) return '';
+      const cards = upgrades
+        .map((upgrade) => {
+          const effectLines = describeUpgradeEffects(upgrade.effects);
+          const effectsMarkup = effectLines.length
+            ? `<ul class="upgrade-effects">${effectLines.map((line) => `<li>${line}</li>`).join('')}</ul>`
+            : '';
+          const requirements = upgrade.unlock_requirements?.length
+            ? `Requires ${upgrade.unlock_requirements.map((id) => getUpgradeNameById(id)).join(', ')}`
+            : 'Unlocked by default';
+          return `
+            <article class="upgrade-card">
+              <h4>${upgrade.name}</h4>
+              <div class="upgrade-meta">
+                <span><i class="bi bi-cash-stack"></i> ${currency(upgrade.cost)}</span>
+                <span><i class="bi bi-arrow-repeat"></i> Upkeep ${formatCurrencySigned(upgrade.upkeep)}/day</span>
+              </div>
+              <p class="upgrade-desc">${upgrade.description}</p>
+              ${effectsMarkup}
+              <p class="upgrade-reqs">${requirements}</p>
+            </article>
+          `;
+        })
+        .join('');
+      return `
+        <section class="upgrade-section">
+          <div class="upgrade-section-head">
+            <h3>${meta.label}</h3>
+            <p class="mini-label">${meta.blurb}</p>
+          </div>
+          <div class="upgrade-card-grid">
+            ${cards}
+          </div>
+        </section>
+      `;
+    })
+    .filter(Boolean)
+    .join('');
+  elements.upgradeList.innerHTML = sections || '<p class="upgrade-empty">Upgrades are still loading.</p>';
+};
+
+const showUpgradesModal = () => {
+  if (!elements.upgradesModal) return;
+  elements.upgradesModal.classList.add('open');
+  elements.upgradesModal.setAttribute('aria-hidden', 'false');
+};
+
+const hideUpgradesModal = () => {
+  if (!elements.upgradesModal) return;
+  elements.upgradesModal.classList.remove('open');
+  elements.upgradesModal.setAttribute('aria-hidden', 'true');
+};
 
 const renderRiskBadge = (dish) => {
   if (!dish?.risk) return '';
@@ -1739,6 +2319,93 @@ const updateSupplyUI = () => {
   }
 };
 
+const ensureDifficultyState = () => {
+  if (!state.difficulty) {
+    state.difficulty = { ...DEFAULT_DIFFICULTY };
+  }
+};
+
+const formatDifficultyValue = (field, value) => {
+  const safeValue = Number.isFinite(value) ? value : DEFAULT_DIFFICULTY[field.id];
+  return field.format ? field.format(safeValue) : safeValue.toFixed(2);
+};
+
+const syncDifficultyField = (field) => {
+  const value = Number(state.difficulty?.[field.id]) || DEFAULT_DIFFICULTY[field.id];
+  const input = document.getElementById(field.inputId);
+  if (input && document.activeElement !== input) {
+    input.value = value;
+  }
+  const badge = document.getElementById(field.valueId);
+  if (badge) {
+    badge.textContent = formatDifficultyValue(field, value);
+  }
+};
+
+const renderDeveloperPanel = () => {
+  ensureDifficultyState();
+  DIFFICULTY_FIELDS.forEach((field) => syncDifficultyField(field));
+};
+
+const showDevtoolsModal = () => {
+  if (!elements.devtoolsModal) return;
+  renderDeveloperPanel();
+  elements.devtoolsModal.classList.add('open');
+  elements.devtoolsModal.setAttribute('aria-hidden', 'false');
+};
+
+const hideDevtoolsModal = () => {
+  if (!elements.devtoolsModal) return;
+  elements.devtoolsModal.classList.remove('open');
+  elements.devtoolsModal.setAttribute('aria-hidden', 'true');
+};
+
+const applyDifficultySideEffects = () => {
+  persistDifficultySettings();
+  updateEnvironmentHints(state.lastEvent);
+  updateSupplyUI();
+  if (state.simRunning && !state.servicePaused) {
+    scheduleServiceTick();
+  }
+};
+
+const handleDifficultyInput = (field, rawValue) => {
+  ensureDifficultyState();
+  const parsed = parseFloat(rawValue);
+  if (Number.isNaN(parsed)) return;
+  const min = field.min ?? 0.1;
+  const max = field.max ?? 3;
+  const clamped = clamp(parsed, min, max);
+  const fixed = Number(clamped.toFixed(2));
+  if (state.difficulty[field.id] === fixed) {
+    syncDifficultyField(field);
+    return;
+  }
+  state.difficulty[field.id] = fixed;
+  const input = document.getElementById(field.inputId);
+  if (input) {
+    input.value = fixed;
+  }
+  syncDifficultyField(field);
+  applyDifficultySideEffects();
+  if (state.phase === 'prep') {
+    setPrepMessage('Dev tuning updated.');
+  } else if (state.simRunning) {
+    logServiceMessage('Dev tuning updated mid-service.');
+  }
+};
+
+const resetDifficultySettings = () => {
+  state.difficulty = { ...DEFAULT_DIFFICULTY };
+  renderDeveloperPanel();
+  applyDifficultySideEffects();
+  if (state.phase === 'prep') {
+    setPrepMessage('Dev tuning reset to defaults.');
+  } else {
+    logServiceMessage('Dev tuning reset to defaults.');
+  }
+};
+
 const attachEvents = () => {
   document.querySelectorAll('input[name="price-point"]').forEach((radio) => {
     radio.addEventListener('change', () => {
@@ -1768,8 +2435,32 @@ const attachEvents = () => {
     elements.supplyDiscard.addEventListener('click', discardStock);
   }
   if (elements.pauseButton) {
-    elements.pauseButton.addEventListener('click', togglePause);
+    elements.pauseButton.addEventListener('click', () => togglePause());
   }
+
+  if (elements.devtoolsTrigger) {
+    elements.devtoolsTrigger.addEventListener('click', showDevtoolsModal);
+  }
+  if (elements.devtoolsClose) {
+    elements.devtoolsClose.addEventListener('click', hideDevtoolsModal);
+  }
+  if (elements.devtoolsCloseSecondary) {
+    elements.devtoolsCloseSecondary.addEventListener('click', hideDevtoolsModal);
+  }
+  if (elements.devtoolsModal) {
+    elements.devtoolsModal.addEventListener('click', (event) => {
+      if (event.target === elements.devtoolsModal) hideDevtoolsModal();
+    });
+  }
+  if (elements.devtoolsReset) {
+    elements.devtoolsReset.addEventListener('click', resetDifficultySettings);
+  }
+  DIFFICULTY_FIELDS.forEach((field) => {
+    const input = document.getElementById(field.inputId);
+    if (!input) return;
+    input.addEventListener('input', (event) => handleDifficultyInput(field, event.target.value));
+    input.addEventListener('change', (event) => handleDifficultyInput(field, event.target.value));
+  });
 
   if (elements.failReset) {
     elements.failReset.addEventListener('click', resetCampaign);
@@ -1835,12 +2526,30 @@ const attachEvents = () => {
       }
     });
   }
+  if (elements.upgradesTrigger) {
+    elements.upgradesTrigger.addEventListener('click', () => {
+      renderUpgradeDeck();
+      showUpgradesModal();
+    });
+  }
+  if (elements.upgradesClose) {
+    elements.upgradesClose.addEventListener('click', hideUpgradesModal);
+  }
+  if (elements.upgradesModal) {
+    elements.upgradesModal.addEventListener('click', (event) => {
+      if (event.target === elements.upgradesModal) {
+        hideUpgradesModal();
+      }
+    });
+  }
   if (elements.modalNextDay) {
     elements.modalNextDay.addEventListener('click', advanceToNextDay);
   }
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       hideResultsModal();
+      hideUpgradesModal();
+      hideDevtoolsModal();
     }
   });
 };
@@ -1872,6 +2581,7 @@ const resetServiceView = () => {
   elements.serviceFeed.innerHTML = '';
   updateServiceStats({ served: 0, angry: 0, wait: 0, revenue: 0 });
   renderEventCard(null);
+  state.lastEvent = null;
   state.activeOutcome = null;
   state.serviceCommandsUsed = new Set();
   state.currentProgress = 0;
@@ -1994,11 +2704,27 @@ const startDay = () => {
   const outcome = calculateDayOutcome(event);
   updateStockForecast(outcome);
   runServiceSimulation(outcome);
+  autoPauseForIntel();
 };
 
 const pickEvent = () => {
   const index = Math.floor(Math.random() * EVENTS.length);
-  return EVENTS[index];
+  const baseEvent = EVENTS[index];
+  return applyDifficultyToEvent(baseEvent);
+};
+
+const applyDifficultyToEvent = (event) => {
+  if (!event) return null;
+  const multiplier = state.difficulty?.eventEffectMultiplier || 1;
+  const scaledEffects = {};
+  Object.entries(event.effects || {}).forEach(([key, value]) => {
+    if (typeof value === 'number') {
+      scaledEffects[key] = Number((value * multiplier).toFixed(2));
+    } else {
+      scaledEffects[key] = value;
+    }
+  });
+  return { ...event, effects: scaledEffects };
 };
 
 const calculateDayOutcome = (event) => {
@@ -2008,11 +2734,13 @@ const calculateDayOutcome = (event) => {
   const riskHypeBoost = dishes.reduce((sum, dish) => sum + (dish.risk?.hypeBoost || 0), 0);
   const price = PRICE_POINTS[state.pricePoint];
   const helper = HELPERS.find((entry) => entry.id === state.helper) || HELPERS[0];
+  const difficulty = state.difficulty || DEFAULT_DIFFICULTY;
   const { units: supplyBefore } = inventoryManager.snapshot();
+  const helperCost = Math.round(helper.cost * (difficulty.helperCostMultiplier || 1));
   if (!dishes.length) {
-    const upkeep = 60 + state.day * 6;
+    const upkeep = Math.round((60 + state.day * 6) * (difficulty.upkeepMultiplier || 1));
     const supplyCost = state.purchaseCost || 0;
-    const expenses = helper.cost + upkeep + supplyCost;
+    const expenses = helperCost + upkeep + supplyCost;
     return {
       day: state.day,
       served: 0,
@@ -2020,7 +2748,7 @@ const calculateDayOutcome = (event) => {
       averageWait: 0,
       revenue: 0,
       ingredientCost: 0,
-      staffCost: helper.cost,
+      staffCost: helperCost,
       upkeep,
       expenses,
       profit: -expenses,
@@ -2059,7 +2787,8 @@ const calculateDayOutcome = (event) => {
   const hypeFactor = 0.5 + state.hype / 120;
   const turnoutFactor = avgPopularity * price.popularity * (1 + (event.effects.turnout || 0)) * comboEffects.demandMod;
   const baseDemand = 12 + state.day * 2;
-  const potentialCustomers = baseDemand * hypeFactor * turnoutFactor;
+  const turnoutMultiplier = difficulty.turnoutMultiplier || 1;
+  const potentialCustomers = baseDemand * hypeFactor * turnoutFactor * turnoutMultiplier;
   const capacityBoost = 1 + (helper.capacity || 0);
   const maxCustomers = Math.round(state.truck.capacity * capacityBoost);
   const customers = clamp(Math.round(potentialCustomers), 6, maxCustomers);
@@ -2074,9 +2803,9 @@ const calculateDayOutcome = (event) => {
   const averageWait = clamp(Math.round(6 - speedScore * 3 + angry * 0.12), 2, 15);
   const pricePerTicket = price.price + avgMargin;
   const revenue = served * pricePerTicket;
-  const ingredientCost = served * avgCost;
-  const staffCost = helper.cost;
-  const upkeep = 60 + state.day * 6;
+  const ingredientCost = served * avgCost * (difficulty.ingredientCostMultiplier || 1);
+  const staffCost = helperCost;
+  const upkeep = Math.round((60 + state.day * 6) * (difficulty.upkeepMultiplier || 1));
   const supplyCost = state.purchaseCost || 0;
   const expenses = ingredientCost + staffCost + upkeep + supplyCost;
   const profit = Math.round(revenue - expenses);
@@ -2084,7 +2813,8 @@ const calculateDayOutcome = (event) => {
   const qualityFactor = price.quality + helper.charm + state.staff.charm * 0.2;
   const ratingBase = 74 + (profit / 9) - angry * 1.8 + qualityFactor * 8 + (event.effects.rating || 0) + comboEffects.ratingMod + riskRatingShift;
   const rating = clamp(Math.round(ratingBase), 10, 100);
-  const hypeDelta = clamp(Math.round((rating - 72) / 6 + (event.effects.hype || 0) + (comboEffects.hypeMod || 0) + riskHypeBoost), -12, 14);
+  const hypeBase = (rating - 72) / 6 + (event.effects.hype || 0) + (comboEffects.hypeMod || 0) + riskHypeBoost;
+  const hypeDelta = clamp(Math.round(hypeBase * (difficulty.hypeDeltaMultiplier || 1)), -20, 20);
   const repDelta = clamp(Math.round((rating - 78) / 8), -6, 8);
   const selloutProgress = stockOnTruck > 0 && projectedDemand > stockOnTruck ? clamp((stockOnTruck / projectedDemand) * 100, 1, 100) : null;
 
@@ -2149,6 +2879,30 @@ const runServiceSimulation = (outcome) => {
   elements.serviceStatus.textContent = 'Tickets in queue. Watch the line.';
   logServiceMessage(`Event: ${outcome.event.title}`);
   scheduleServiceTick();
+};
+
+const scrollIntelIntoView = () => {
+  if (!elements.serviceHints || typeof elements.serviceHints.scrollIntoView !== 'function') return;
+  const scrollOptions = { behavior: 'smooth', block: 'center', inline: 'nearest' };
+  try {
+    elements.serviceHints.scrollIntoView(scrollOptions);
+  } catch (error) {
+    elements.serviceHints.scrollIntoView();
+  }
+};
+
+const autoPauseForIntel = () => {
+  if (!state.simRunning || state.servicePaused || state.gameOver) return;
+  togglePause({
+    statusText: 'Paused for intel review.',
+    logText: 'Intel prioritized - sim auto-paused at open.',
+  });
+  const scrollTask = () => scrollIntelIntoView();
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(scrollTask);
+  } else {
+    setTimeout(scrollTask, 0);
+  }
 };
 
 const updateServiceStats = (stats) => {
@@ -2372,14 +3126,21 @@ const clearServiceTimer = () => {
   }
 };
 
+const getServiceInterval = () => {
+  const multiplier = clamp(state.difficulty?.serviceSpeedMultiplier || 1, 0.5, 2);
+  return Math.max(250, SERVICE_INTERVAL_MS / multiplier);
+};
+
 const scheduleServiceTick = () => {
   clearServiceTimer();
-  state.serviceTimer = setTimeout(serviceTick, SERVICE_INTERVAL_MS);
+  state.serviceTimer = setTimeout(serviceTick, getServiceInterval());
 };
 
 const serviceTick = () => {
   if (!state.simRunning || state.servicePaused || !state.activeOutcome || state.gameOver) return;
-  let progress = state.serviceProgress + SERVICE_STEP_MIN + Math.random() * SERVICE_STEP_VARIANCE;
+  const speedMultiplier = clamp(state.difficulty?.serviceSpeedMultiplier || 1, 0.25, 4);
+  const step = (SERVICE_STEP_MIN + Math.random() * SERVICE_STEP_VARIANCE) * speedMultiplier;
+  let progress = state.serviceProgress + step;
   if (progress >= 100) progress = 100;
   state.serviceProgress = progress;
   state.currentProgress = progress;
@@ -2481,7 +3242,8 @@ const cloneOutcome = (outcome) => JSON.parse(JSON.stringify(outcome));
 const refreshEconomy = (outcome) => {
   const baseExpenses = outcome.staffCost + outcome.upkeep + (outcome.supplyCost || 0) + (outcome.extraExpenses || 0);
   outcome.revenue = Math.round(outcome.served * outcome.pricePerTicket);
-  outcome.ingredientCost = Math.round(outcome.served * outcome.avgCost);
+  const ingredientMultiplier = state.difficulty?.ingredientCostMultiplier || 1;
+  outcome.ingredientCost = Math.round(outcome.served * outcome.avgCost * ingredientMultiplier);
   outcome.expenses = Math.round(outcome.ingredientCost + baseExpenses);
   outcome.profit = Math.round(outcome.revenue - outcome.expenses);
 };
@@ -2627,13 +3389,13 @@ const applyCommandEffect = (commandId, outcome) => {
   recalcSupplyShortfall(outcome);
 };
 
-const togglePause = () => {
+const togglePause = (options = {}) => {
   if (!state.simRunning || state.gameOver) return;
   state.servicePaused = !state.servicePaused;
   if (state.servicePaused) {
     clearServiceTimer();
-    elements.serviceStatus.textContent = 'Paused - crew catching breath.';
-    logServiceMessage('Service paused to reset stations.');
+    elements.serviceStatus.textContent = options.statusText || 'Paused - crew catching breath.';
+    logServiceMessage(options.logText || 'Service paused to reset stations.');
   } else {
     elements.serviceStatus.textContent = 'Back on the line. Tickets moving.';
     logServiceMessage('Service resumed.');
@@ -2649,7 +3411,9 @@ const finalizeInventory = (outcome) => {
   updateStockForecast(null);
 
   if (leftover > 0 && inventoryManager.age >= 2) {
-    const riskChance = Math.min(0.2 + 0.15 * (inventoryManager.age - 1) + leftover / 100, 0.9);
+    const spoilageMultiplier = clamp(state.difficulty?.spoilageRiskMultiplier || 1, 0.1, 3);
+    const baseChance = 0.2 + 0.15 * (inventoryManager.age - 1) + leftover / 100;
+    const riskChance = Math.min(baseChance * spoilageMultiplier, 0.95);
     if (Math.random() < riskChance) {
       outcome.contamination = true;
       outcome.rating = clamp(outcome.rating - 12, 10, 100);
@@ -2667,8 +3431,9 @@ const evaluateDayRisk = (outcome) => {
   if (!outcome) return;
   let strikesEarned = 0;
   const angryRatio = outcome.served ? outcome.angry / outcome.served : outcome.angry > 0 ? 1 : 0;
+  const angryThreshold = clamp(0.4 * (state.difficulty?.angryTolerance || 1), 0.1, 0.9);
   if (outcome.profit <= 0) strikesEarned += 1;
-  if (angryRatio >= 0.4) strikesEarned += 1;
+  if (angryRatio >= angryThreshold) strikesEarned += 1;
   if (outcome.rating < 65) strikesEarned += 1;
 
   if (strikesEarned) {
@@ -2745,12 +3510,14 @@ const init = () => {
   renderLabSelects();
   refreshDishLibrary({ showHint: true });
   renderEventLibrary();
+  renderUpgradeDeck();
   renderHelperSelect();
   renderCommandButtons();
   updateHelperNote();
   updateLabPreview();
   rollAudienceTrend();
   updateHUD();
+  renderDeveloperPanel();
   attachEvents();
   setPrepMessage('Recipe Lab: craft combos, then select up to 3 to prep.');
   updateCommandButtons();

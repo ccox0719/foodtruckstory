@@ -20,8 +20,20 @@
 
     <section class="phase-track" aria-label="Shift guide">
       <div class="phase-track-head">
-        <p class="eyebrow">Campaign flow</p>
-        <p class="phase-tip" id="phase-tip">Lock prep to unlock service.</p>
+        <div class="phase-track-copy">
+          <p class="eyebrow">Campaign flow</p>
+          <p class="phase-tip" id="phase-tip">Lock prep to unlock service.</p>
+        </div>
+        <div class="phase-track-actions">
+          <button class="phase-upgrades-btn" type="button" id="upgrades-trigger" aria-haspopup="dialog" aria-controls="upgrades-modal">
+            <i class="bi bi-rocket-takeoff"></i>
+            <span>Upgrades</span>
+          </button>
+          <button class="phase-upgrades-btn ghost" type="button" id="devtools-trigger" aria-haspopup="dialog" aria-controls="devtools-modal">
+            <i class="bi bi-sliders"></i>
+            <span>Dev tools</span>
+          </button>
+        </div>
       </div>
       <div class="phase-track-grid">
         <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
@@ -247,7 +259,7 @@
           <div><span class="label">Avg wait</span><span class="value" id="stat-wait">0 min</span></div>
           <div><span class="label">Revenue</span><span class="value" id="stat-revenue">$0</span></div>
         </div>
-        <div class="service-hints" aria-live="polite">
+        <div class="service-hints" id="service-hints" aria-live="polite">
           <div class="hint-head">
             <p class="panel-title"><i class="bi bi-megaphone"></i> Intel</p>
             <p class="hint-sub">Radio + papers drop cues.</p>
@@ -342,6 +354,16 @@
       </section>
     </main>
 
+  <div class="upgrades-modal" id="upgrades-modal" aria-hidden="true">
+    <div class="upgrades-card" role="dialog" aria-modal="true" aria-labelledby="upgrades-title">
+      <button class="modal-close" type="button" id="upgrades-close" aria-label="Close upgrades"><i class="bi bi-x-lg"></i></button>
+      <p class="eyebrow">Upgrade deck</p>
+      <h2 id="upgrades-title">Truck & brand boosts</h2>
+      <p class="upgrades-sub">Stack permanent perks across truck, staff, gear, and economy. Prereqs show what must be owned first.</p>
+      <div class="upgrade-list" id="upgrade-list"></div>
+    </div>
+  </div>
+
   <div class="results-modal" id="results-modal" aria-hidden="true">
     <div class="results-modal-card" role="dialog" aria-modal="true" aria-labelledby="results-modal-title">
       <button class="modal-close" type="button" id="results-close" aria-label="Close hype report"><i class="bi bi-x-lg"></i></button>
@@ -393,6 +415,77 @@
       <div class="results-modal-actions">
         <button class="btn primary" type="button" id="modal-next-day">Next day</button>
         <button class="btn secondary" type="button" id="modal-stay">Back to prep</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="upgrades-modal" id="devtools-modal" aria-hidden="true">
+    <div class="upgrades-card devtools-card" role="dialog" aria-modal="true" aria-labelledby="devtools-title">
+      <button class="modal-close" type="button" id="devtools-close" aria-label="Close dev tools"><i class="bi bi-x-lg"></i></button>
+      <p class="eyebrow">Developer panel</p>
+      <h2 id="devtools-title">Difficulty tuning</h2>
+      <p class="devtools-sub">Tweak live multipliers to test pacing, economy, and risk.</p>
+      <div class="devtools-grid">
+        <section>
+          <p class="devtools-group-title">Economy</p>
+          <div class="devtools-field">
+            <label for="difficulty-upkeep">Upkeep multiplier <span id="difficulty-upkeep-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-upkeep" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Scales daily fixed costs and base upkeep.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-ingredient">Ingredient multiplier <span id="difficulty-ingredient-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-ingredient" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Adjusts ingredient spend per plate.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-helper">Helper cost multiplier <span id="difficulty-helper-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-helper" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Raises or lowers daily helper fees.</p>
+          </div>
+        </section>
+        <section>
+          <p class="devtools-group-title">Crowd & hype</p>
+          <div class="devtools-field">
+            <label for="difficulty-turnout">Turnout multiplier <span id="difficulty-turnout-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-turnout" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Scales projected guest volume.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-hype">Hype delta multiplier <span id="difficulty-hype-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-hype" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Boosts or softens hype swings after service.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-event">Event effect multiplier <span id="difficulty-event-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-event" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Amplifies weather, critic, and rush modifiers.</p>
+          </div>
+        </section>
+        <section>
+          <p class="devtools-group-title">Service feel</p>
+          <div class="devtools-field">
+            <label for="difficulty-service">Service speed multiplier <span id="difficulty-service-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-service" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Impacts sim tick rate and progress speed.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-angry">Angry tolerance <span id="difficulty-angry-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-angry" min="0.5" max="2" step="0.05" />
+            <p class="devtools-note">Sets the strike threshold for upset guests.</p>
+          </div>
+          <div class="devtools-field">
+            <label for="difficulty-spoilage">Spoilage multiplier <span id="difficulty-spoilage-value" class="devtools-value">1.00×</span></label>
+            <input type="number" id="difficulty-spoilage" min="0.25" max="2" step="0.05" />
+            <p class="devtools-note">Adjusts inventory risk from aging stock.</p>
+          </div>
+        </section>
+      </div>
+      <div class="devtools-actions">
+        <button class="btn tertiary" type="button" id="devtools-reset"><i class="bi bi-arrow-counterclockwise"></i> Reset defaults</button>
+        <div class="devtools-actions-right">
+          <button class="btn ghost" type="button" id="devtools-close-secondary">Close</button>
+        </div>
       </div>
     </div>
   </div>
