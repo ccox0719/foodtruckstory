@@ -1,5 +1,16 @@
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
+const BASE_TRUCK_STATS = Object.freeze({ speed: 1, capacity: 28 });
+const BASE_STAFF_STATS = Object.freeze({ efficiency: 1, charm: 1 });
+
+const createUpgradeBonusState = () => ({
+  hypeDailyBonus: 0,
+  upkeepReductionPct: 0,
+  suppliesCostPct: 0,
+  servingsCapacityAdd: 0,
+  hypeRandomRange: null,
+});
+
 const INGREDIENT_BLUEPRINTS = [
   {
     id: 'smoke-bowl-bbq',
@@ -1014,6 +1025,8 @@ const UPGRADE_DECK = [
   },
 ];
 
+const UPGRADE_LOOKUP = new Map(UPGRADE_DECK.map((upgrade) => [upgrade.id, upgrade]));
+
 const UPGRADE_CATEGORY_META = {
   truck: { label: 'Truck systems', blurb: 'Capacity, speed, and flow control.' },
   equipment: { label: 'Kitchen gear', blurb: 'Prep stations that unlock formats.' },
@@ -1149,8 +1162,8 @@ const state = {
   money: 520,
   hype: 40,
   reputation: 48,
-  truck: { speed: 1, capacity: 28 },
-  staff: { efficiency: 1, charm: 1 },
+  truck: { ...BASE_TRUCK_STATS },
+  staff: { ...BASE_STAFF_STATS },
   selectedDishes: [],
   pricePoint: 'street',
   helper: 'none',
@@ -1181,6 +1194,9 @@ const state = {
   comboHistory: {},
   lastSupplyUnitCost: SUPPLY_COST_PER_UNIT,
   difficulty: loadDifficultySettings(),
+  ownedUpgrades: new Set(),
+  upgradeBonuses: createUpgradeBonusState(),
+  totalUpgradeUpkeep: 0,
 };
 
 const PHASE_SEQUENCE = ['prep', 'service', 'results'];
@@ -1197,6 +1213,95 @@ const setPhase = (nextPhase) => {
 };
 
 const inventoryManager = new InventoryManager(state);
+
+const ensureUpgradeState = () => {
+  if (!(state.ownedUpgrades instanceof Set)) {
+    state.ownedUpgrades = new Set(state.ownedUpgrades ? Array.from(state.ownedUpgrades) : []);
+  }
+  if (!state.upgradeBonuses) {
+    state.upgradeBonuses = createUpgradeBonusState();
+  }
+  if (typeof state.totalUpgradeUpkeep !== 'number') {
+    state.totalUpgradeUpkeep = 0;
+  }
+};
+
+const getOwnedUpgradeIds = () => {
+  ensureUpgradeState();
+  return Array.from(state.ownedUpgrades);
+};
+
+const isUpgradeOwned = (upgradeId) => {
+  ensureUpgradeState();
+  return state.ownedUpgrades.has(upgradeId);
+};
+
+const getMissingUpgradeRequirements = (upgrade) =>
+  (upgrade?.unlock_requirements || []).filter((requirementId) => !isUpgradeOwned(requirementId));
+
+const applyUpgradeEffectValue = (bonuses, key, value) => {
+  switch (key) {
+    case 'speed_mult':
+      state.truck.speed *= value;
+      break;
+    case 'capacity_add':
+      state.truck.capacity += value;
+      break;
+    case 'servings_capacity_add':
+      bonuses.servingsCapacityAdd = (bonuses.servingsCapacityAdd || 0) + value;
+      break;
+    case 'staff_efficiency_mult':
+    case 'efficiency_mult':
+      state.staff.efficiency *= value;
+      break;
+    case 'charm_mult':
+      state.staff.charm *= value;
+      break;
+    case 'hype_daily_bonus':
+      bonuses.hypeDailyBonus += value;
+      break;
+    case 'hype_random_range':
+      bonuses.hypeRandomRange = Array.isArray(value) ? [...value] : value;
+      break;
+    case 'upkeep_reduction_pct':
+      bonuses.upkeepReductionPct += value;
+      break;
+    case 'supplies_cost_pct':
+      bonuses.suppliesCostPct += value;
+      break;
+    default: {
+      if (typeof value === 'number') {
+        bonuses[key] = (bonuses[key] || 0) + value;
+      } else if (Array.isArray(value)) {
+        bonuses[key] = [...value];
+      } else if (typeof value === 'object' && value !== null) {
+        bonuses[key] = { ...value };
+      } else {
+        bonuses[key] = value;
+      }
+    }
+  }
+};
+
+const recalculateUpgradeEffects = () => {
+  ensureUpgradeState();
+  state.truck = { ...BASE_TRUCK_STATS };
+  state.staff = { ...BASE_STAFF_STATS };
+  const bonuses = createUpgradeBonusState();
+  let totalUpkeep = 0;
+  getOwnedUpgradeIds().forEach((upgradeId) => {
+    const upgrade = UPGRADE_LOOKUP.get(upgradeId);
+    if (!upgrade) return;
+    totalUpkeep += upgrade.upkeep || 0;
+    Object.entries(upgrade.effects || {}).forEach(([key, value]) => {
+      applyUpgradeEffectValue(bonuses, key, value);
+    });
+  });
+  state.totalUpgradeUpkeep = totalUpkeep;
+  state.upgradeBonuses = bonuses;
+};
+
+recalculateUpgradeEffects();
 
 const getActiveContexts = () => {
   const contexts = new Set();
@@ -1252,7 +1357,11 @@ const getAverageDishCost = () => {
   return SUPPLY_COST_PER_UNIT;
 };
 
-const getSupplyUnitCost = () => Math.max(3, Math.round(getAverageDishCost()));
+const getSupplyUnitCost = () => {
+  const baseCost = Math.max(3, Math.round(getAverageDishCost()));
+  const modifier = 1 + ((state.upgradeBonuses?.suppliesCostPct || 0) / 100);
+  return Math.max(1, Math.round(baseCost * modifier));
+};
 
 const elements = {};
 const PHASE_PANEL_VISIBILITY = {
@@ -1424,6 +1533,67 @@ const describeRange = (value) => {
 
 const getUpgradeNameById = (id) => UPGRADE_DECK.find((upgrade) => upgrade.id === id)?.name || titleize(id);
 
+const describeUpgradeAvailability = (upgrade) => {
+  ensureUpgradeState();
+  if (!upgrade) {
+    return { status: 'missing', buttonLabel: 'Unavailable', disabled: true, message: 'Upgrade not found.' };
+  }
+  if (isUpgradeOwned(upgrade.id)) {
+    return { status: 'owned', buttonLabel: 'Owned', disabled: true, message: 'Already installed.' };
+  }
+  const missing = getMissingUpgradeRequirements(upgrade);
+  if (missing.length) {
+    return {
+      status: 'locked',
+      buttonLabel: 'Locked',
+      disabled: true,
+      message: `Requires ${missing.map((id) => getUpgradeNameById(id)).join(', ')}`,
+    };
+  }
+  if (state.money < upgrade.cost) {
+    const short = upgrade.cost - state.money;
+    return {
+      status: 'funds',
+      buttonLabel: 'Need funds',
+      disabled: true,
+      message: `Need ${currency(short)} more.`,
+    };
+  }
+  return {
+    status: 'ready',
+    buttonLabel: `Buy for ${currency(upgrade.cost)}`,
+    disabled: false,
+    message: 'Ready to install.',
+  };
+};
+
+const getDailyBaseUpkeep = () => {
+  const difficulty = state.difficulty || DEFAULT_DIFFICULTY;
+  return Math.round((60 + state.day * 6) * (difficulty.upkeepMultiplier || 1));
+};
+
+const getUpgradeUpkeepCost = () => {
+  const difficulty = state.difficulty || DEFAULT_DIFFICULTY;
+  const totalUpgradeCost = state.totalUpgradeUpkeep || 0;
+  return Math.round(totalUpgradeCost * (difficulty.upkeepMultiplier || 1));
+};
+
+const getDailyUpkeepCost = () => {
+  const base = getDailyBaseUpkeep();
+  const upgrades = getUpgradeUpkeepCost();
+  const reductionPct = state.upgradeBonuses?.upkeepReductionPct || 0;
+  const combined = base + upgrades;
+  const adjusted = Math.round(combined * (1 - reductionPct / 100));
+  return Math.max(0, adjusted);
+};
+
+const applyDailyUpgradeBonuses = () => {
+  const hypeBonus = state.upgradeBonuses?.hypeDailyBonus || 0;
+  if (hypeBonus) {
+    state.hype = clamp(state.hype + hypeBonus, 0, 100);
+  }
+};
+
 const formatCommandLabel = (commandId) => SERVICE_COMMANDS[commandId]?.label || titleize(commandId);
 
 const formatUpgradeEffect = (key, value) => {
@@ -1515,8 +1685,16 @@ const renderUpgradeDeck = () => {
           const requirements = upgrade.unlock_requirements?.length
             ? `Requires ${upgrade.unlock_requirements.map((id) => getUpgradeNameById(id)).join(', ')}`
             : 'Unlocked by default';
+          const availability = describeUpgradeAvailability(upgrade);
+          const statusNote = availability.message || '';
+          const buttonLabel = availability.buttonLabel || 'Unavailable';
+          const buttonMarkup = `
+            <button class="upgrade-buy ${availability.status}" type="button" data-upgrade-id="${upgrade.id}"
+              ${availability.disabled ? 'disabled' : ''}>
+              ${buttonLabel}
+            </button>`;
           return `
-            <article class="upgrade-card">
+            <article class="upgrade-card ${availability.status}">
               <h4>${upgrade.name}</h4>
               <div class="upgrade-meta">
                 <span><i class="bi bi-cash-stack"></i> ${currency(upgrade.cost)}</span>
@@ -1525,6 +1703,10 @@ const renderUpgradeDeck = () => {
               <p class="upgrade-desc">${upgrade.description}</p>
               ${effectsMarkup}
               <p class="upgrade-reqs">${requirements}</p>
+              <div class="upgrade-card-foot">
+                <span class="upgrade-status ${availability.status}">${statusNote}</span>
+                ${buttonMarkup}
+              </div>
             </article>
           `;
         })
@@ -2184,6 +2366,33 @@ const setPrepMessage = (message) => {
   elements.prepNote.textContent = message;
 };
 
+const attemptPurchaseUpgrade = (upgradeId) => {
+  const upgrade = UPGRADE_LOOKUP.get(upgradeId);
+  if (!upgrade) return;
+  const availability = describeUpgradeAvailability(upgrade);
+  if (availability.status !== 'ready') {
+    if (availability.message) {
+      setPrepMessage(availability.message);
+    }
+    return;
+  }
+  ensureUpgradeState();
+  state.money -= upgrade.cost;
+  state.ownedUpgrades.add(upgrade.id);
+  recalculateUpgradeEffects();
+  updateHUD();
+  renderUpgradeDeck();
+  setPrepMessage(`${upgrade.name} installed. Upkeep ${formatCurrencySigned(upgrade.upkeep || 0)}/day.`);
+};
+
+const handleUpgradeListClick = (event) => {
+  const button = event.target.closest('button[data-upgrade-id]');
+  if (!button || button.disabled) return;
+  const { upgradeId } = button.dataset;
+  if (!upgradeId) return;
+  attemptPurchaseUpgrade(upgradeId);
+};
+
 const handleSupplyChange = (event) => {
   let value = parseInt(event.target.value, 10);
   if (Number.isNaN(value)) value = 0;
@@ -2542,6 +2751,9 @@ const attachEvents = () => {
       }
     });
   }
+  if (elements.upgradeList) {
+    elements.upgradeList.addEventListener('click', handleUpgradeListClick);
+  }
   if (elements.modalNextDay) {
     elements.modalNextDay.addEventListener('click', advanceToNextDay);
   }
@@ -2557,6 +2769,7 @@ const attachEvents = () => {
 const advanceToNextDay = () => {
   if (!state.lastResults) return;
   state.day += 1;
+  applyDailyUpgradeBonuses();
   decayCommandCooldowns();
   setPhase('prep');
   state.lastResults = null;
@@ -2620,6 +2833,10 @@ const resetCampaign = () => {
   state.lastSupplyUnitCost = SUPPLY_COST_PER_UNIT;
   state.labSelection = { form: FORM_OPTIONS[0].id, flavor: FLAVOR_OPTIONS[0].id, blueprintId: null };
   state.comboHistory = {};
+  state.ownedUpgrades = new Set();
+  state.upgradeBonuses = createUpgradeBonusState();
+  state.totalUpgradeUpkeep = 0;
+  recalculateUpgradeEffects();
   setPhase('prep');
   renderLabSelects();
   updateLabPreview();
@@ -2640,6 +2857,7 @@ const resetCampaign = () => {
   elements.nextDay.disabled = true;
   syncModalNextDay();
   rollAudienceTrend();
+  renderUpgradeDeck();
   updateStockForecast(null);
 };
 
@@ -2738,7 +2956,7 @@ const calculateDayOutcome = (event) => {
   const { units: supplyBefore } = inventoryManager.snapshot();
   const helperCost = Math.round(helper.cost * (difficulty.helperCostMultiplier || 1));
   if (!dishes.length) {
-    const upkeep = Math.round((60 + state.day * 6) * (difficulty.upkeepMultiplier || 1));
+    const upkeep = getDailyUpkeepCost();
     const supplyCost = state.purchaseCost || 0;
     const expenses = helperCost + upkeep + supplyCost;
     return {
@@ -2805,7 +3023,7 @@ const calculateDayOutcome = (event) => {
   const revenue = served * pricePerTicket;
   const ingredientCost = served * avgCost * (difficulty.ingredientCostMultiplier || 1);
   const staffCost = helperCost;
-  const upkeep = Math.round((60 + state.day * 6) * (difficulty.upkeepMultiplier || 1));
+  const upkeep = getDailyUpkeepCost();
   const supplyCost = state.purchaseCost || 0;
   const expenses = ingredientCost + staffCost + upkeep + supplyCost;
   const profit = Math.round(revenue - expenses);
@@ -2977,6 +3195,17 @@ const concludeDay = (outcome) => {
   setPhase('results');
   state.money += outcome.profit;
   state.hype = clamp(state.hype + outcome.hypeDelta, 0, 100);
+  const hypeRange = state.upgradeBonuses?.hypeRandomRange;
+  if (Array.isArray(hypeRange) && hypeRange.length === 2) {
+    const low = Math.min(Number(hypeRange[0]) || 0, Number(hypeRange[1]) || 0);
+    const high = Math.max(Number(hypeRange[0]) || 0, Number(hypeRange[1]) || 0);
+    const span = high - low;
+    const bonus = Math.round(Math.random() * span) + low;
+    if (bonus !== 0) {
+      state.hype = clamp(state.hype + bonus, 0, 100);
+      logServiceMessage(`Brand buzz delivers ${formatSigned(bonus)} hype.`);
+    }
+  }
   state.reputation = clamp(state.reputation + outcome.repDelta, 0, 100);
   state.lastResults = outcome;
   elements.startButton.disabled = false;
