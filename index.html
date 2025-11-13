@@ -18,120 +18,70 @@
 
   <div class="app-shell" id="top">
 
-    <section class="phase-track" aria-label="Shift guide">
-      <div class="phase-track-head">
-        <div class="phase-track-copy">
-          <p class="eyebrow">Campaign flow</p>
-          <p class="phase-tip" id="phase-tip">Lock prep to unlock service.</p>
-        </div>
-        <div class="phase-track-actions">
-          <button class="phase-upgrades-btn" type="button" id="upgrades-trigger" aria-haspopup="dialog" aria-controls="upgrades-modal">
-            <i class="bi bi-rocket-takeoff"></i>
-            <span>Upgrades</span>
-          </button>
-          <button class="phase-upgrades-btn ghost" type="button" id="devtools-trigger" aria-haspopup="dialog" aria-controls="devtools-modal">
-            <i class="bi bi-sliders"></i>
-            <span>Dev tools</span>
-          </button>
-        </div>
-      </div>
-      <div class="phase-track-grid">
-        <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
-          <span class="phase-node-step"><i class="bi bi-backpack2"></i></span>
-          <div>
-            <p class="phase-node-title">Prep</p>
-            <p class="phase-node-desc">Draft</p>
-          </div>
-        </a>
-        <a class="phase-node" data-phase-node="service" href="#phase-service">
-          <span class="phase-node-step"><i class="bi bi-joystick"></i></span>
-          <div>
-            <p class="phase-node-title">Service</p>
-            <p class="phase-node-desc">Roll</p>
-          </div>
-        </a>
-        <a class="phase-node" data-phase-node="results" href="#phase-results">
-          <span class="phase-node-step"><i class="bi bi-stars"></i></span>
-          <div>
-            <p class="phase-node-title">Report</p>
-            <p class="phase-node-desc">Plan</p>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <section class="hud-mini" aria-label="Truck HUD">
-      <div class="mini-bar">
-        <span class="mini-icon"><i class="bi bi-calendar-week"></i></span>
-        <div class="mini-track">
+    <section class="status-bar" aria-label="Campaign overview">
+      <div class="status-strip">
+        <div class="status-chip" title="Campaign day counter">
           <span class="mini-label">Day</span>
           <span class="mini-value" id="hud-day">1</span>
         </div>
-      </div>
-      <div class="mini-bar">
-        <span class="mini-icon"><i class="bi bi-cash-stack"></i></span>
-        <div class="mini-track">
+        <div class="status-chip" title="Cash on hand available for upgrades, supplies, and bribes">
           <span class="mini-label">Bank</span>
           <span class="mini-value" id="hud-money">$0</span>
         </div>
-      </div>
-      <div class="mini-bar">
-        <span class="mini-icon"><i class="bi bi-lightning-charge"></i></span>
-        <div class="mini-track">
+        <div class="status-chip meter" title="Hype measures crowd excitement and demand for the lineup">
           <span class="mini-label">Hype</span>
-          <div class="mini-progress"><span id="hud-hype">0</span><div class="mini-progress-bar" id="hype-bar"></div></div>
+          <div class="mini-progress">
+            <span id="hud-hype">0</span>
+            <div class="mini-progress-bar" id="hype-bar"></div>
+          </div>
         </div>
-      </div>
-      <div class="mini-bar">
-        <span class="mini-icon"><i class="bi bi-star-fill"></i></span>
-        <div class="mini-track">
+        <div class="status-chip meter" title="Reputation reflects critic trust and unlocks premium pricing">
           <span class="mini-label">Rep</span>
-          <div class="mini-progress"><span id="hud-rep">0</span><div class="mini-progress-bar alt" id="rep-bar"></div></div>
+          <div class="mini-progress">
+            <span id="hud-rep">0</span>
+            <div class="mini-progress-bar alt" id="rep-bar"></div>
+          </div>
         </div>
-      </div>
-      <div class="mini-bar danger">
-        <span class="mini-icon"><i class="bi bi-exclamation-triangle"></i></span>
-        <div class="mini-track">
+        <button class="status-chip danger strike-chip" type="button" id="strike-payoff" aria-label="Pay off a strike" title="Click in prep to grease palms and clear one strike for a steep cut of your cash">
           <span class="mini-label">Strikes</span>
           <span class="mini-value" id="hud-strikes">0 / 3</span>
+        </button>
+        <div class="status-chip" title="Truck speed impacts ticket flow and service pace">
+          <span class="mini-label">Speed</span>
+          <span class="mini-value" id="stat-speed">1.00x</span>
         </div>
-      </div>
-    </section>
-
-    <section class="systems panel" id="systems">
-      <div class="systems-grid">
-        <article class="system-card">
-          <span class="system-icon"><i class="bi bi-speedometer2"></i></span>
-          <div class="system-copy">
-            <p class="system-label">Truck speed</p>
-            <p class="system-value" id="stat-speed">1.00x</p>
-            <p class="system-sub">Speed</p>
-          </div>
-        </article>
-        <article class="system-card">
-          <span class="system-icon"><i class="bi bi-people"></i></span>
-          <div class="system-copy">
-            <p class="system-label">Truck capacity</p>
-            <p class="system-value" id="stat-capacity">28 guests</p>
-            <p class="system-sub">Max guests</p>
-          </div>
-        </article>
-        <article class="system-card">
-          <span class="system-icon"><i class="bi bi-lightning"></i></span>
-          <div class="system-copy">
-            <p class="system-label">Staff efficiency</p>
-            <p class="system-value" id="stat-efficiency">1.00x</p>
-            <p class="system-sub">Flow</p>
-          </div>
-        </article>
-        <article class="system-card">
-          <span class="system-icon"><i class="bi bi-heart"></i></span>
-          <div class="system-copy">
-            <p class="system-label">Staff charm</p>
-            <p class="system-value" id="stat-charm">1.00x</p>
-            <p class="system-sub">Charm</p>
-          </div>
-        </article>
+        <div class="status-chip" title="Capacity limits the number of guests you can serve each day">
+          <span class="mini-label">Capacity</span>
+          <span class="mini-value" id="stat-capacity">28</span>
+        </div>
+        <div class="status-chip" title="Flow reflects staff efficiency modifiers from helpers and upgrades">
+          <span class="mini-label">Flow</span>
+          <span class="mini-value" id="stat-efficiency">1.00x</span>
+        </div>
+        <div class="status-chip" title="Charm boosts guest patience and ratings">
+          <span class="mini-label">Charm</span>
+          <span class="mini-value" id="stat-charm">1.00x</span>
+        </div>
+        <div class="phase-chip">
+          <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
+            <span class="phase-node-step"><i class="bi bi-backpack2"></i></span>
+            <span class="sr-only">Prep</span>
+          </a>
+          <a class="phase-node" data-phase-node="service" href="#phase-service">
+            <span class="phase-node-step"><i class="bi bi-joystick"></i></span>
+            <span class="sr-only">Service</span>
+          </a>
+          <a class="phase-node" data-phase-node="results" href="#phase-results">
+            <span class="phase-node-step"><i class="bi bi-stars"></i></span>
+            <span class="sr-only">Results</span>
+          </a>
+        </div>
+        <button class="status-btn" type="button" id="upgrades-trigger" aria-haspopup="dialog" aria-controls="upgrades-modal" aria-label="Upgrades">
+          <i class="bi bi-rocket-takeoff"></i>
+        </button>
+        <button class="status-btn ghost" type="button" id="devtools-trigger" aria-haspopup="dialog" aria-controls="devtools-modal" aria-label="Dev tools">
+          <i class="bi bi-sliders"></i>
+        </button>
       </div>
     </section>
 
@@ -195,11 +145,11 @@
                   <input type="text" id="lab-name" placeholder="Auto from kit" />
                 </label>
               </div>
-              <div class="lab-kit-panel">
-                <p class="mini-label">Ingredient kits</p>
-                <div class="lab-kit-grid" id="lab-kit-grid"></div>
-              </div>
-              <div class="lab-preview" id="lab-preview">
+        <div class="lab-kit-panel">
+          <p class="mini-label">Ingredient kits</p>
+          <div class="lab-kit-grid" id="lab-kit-grid"></div>
+        </div>
+        <div class="lab-preview" id="lab-preview">
                 <p>Select a format + ingredient kit to preview stats.</p>
               </div>
               <div class="lab-actions">
@@ -218,6 +168,7 @@
             <div class="dish-grid" id="dish-grid"></div>
             <footer>
               <p class="foot" id="prep-selection">0 / 3 dishes selected</p>
+              <p class="synergy-note" id="prep-synergy-note"></p>
             </footer>
             <div class="prep-actions">
               <button class="btn primary" type="button" id="start-day">Start day</button>
@@ -358,8 +309,13 @@
             <p class="mini-label">Servings · anger · clue notes</p>
           </div>
           <ul class="dish-telemetry" id="dish-telemetry"></ul>
+        <div class="synergy-breakdown" id="synergy-breakdown">
+          <p class="mini-label">Lineup synergies</p>
+          <ul class="synergy-list" id="synergy-list"></ul>
+          <p class="synergy-hint">Hint: Lock in all 3 lineup slots with combos that share a vibe to unleash the triple synergy bonus.</p>
         </div>
-        <p id="results-summary">Finish a service day to see what changed.</p>
+      </div>
+      <p id="results-summary">Finish a service day to see what changed.</p>
         <div class="result-actions">
           <button class="btn secondary" type="button" id="next-day" disabled>Next day</button>
           <button class="btn ghost" type="button" id="reset-campaign">Reset campaign</button>
@@ -383,6 +339,10 @@
       <p class="eyebrow">Hype report</p>
       <h2 id="results-modal-title">Shift recap</h2>
       <p class="modal-summary" id="modal-summary">Finish a service day to see what changed.</p>
+      <div class="results-modal-actions">
+        <button class="btn primary" type="button" id="modal-next-day">Next day</button>
+        <button class="btn secondary" type="button" id="modal-stay">Back to prep</button>
+      </div>
       <div class="results-modal-grid">
         <article>
           <p class="label">Profit</p>
@@ -424,11 +384,6 @@
             <div class="modal-meter-bar alt" id="modal-rep-meter"></div>
           </div>
         </div>
-      </div>
-      <div class="results-modal-actions">
-        <button class="btn primary" type="button" id="modal-next-day">Next day</button>
-        <button class="btn secondary" type="button" id="modal-stay">Back to prep</button>
-        <button class="btn ghost" type="button" id="modal-close-report">Close report</button>
       </div>
     </div>
   </div>
@@ -505,6 +460,10 @@
   </div>
 
   <div class="fail-overlay" id="fail-overlay" aria-hidden="true">
+    <video id="loss-video" class="fail-video" src="loss.mp4" preload="auto" playsinline></video>
+    <div class="fail-video-overlay" id="fail-video-overlay" aria-hidden="true">
+      <p>Game Over</p>
+    </div>
     <div class="fail-card">
       <p class="eyebrow">Campaign Failed</p>
       <h2 id="fail-reason">Out of cash</h2>

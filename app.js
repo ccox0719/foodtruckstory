@@ -400,12 +400,52 @@ const evaluateBlueprintCore = (blueprint, { contexts = [], novelty = 0 } = {}) =
   score = clamp(score, COMBO_MATRIX.hardRules.clampMin, COMBO_MATRIX.hardRules.clampMax);
   return { score, tier: tierForScore(score), hiddenTitle: hidden?.title || null };
 };
+// PATCH 1: Swingier risk profiles (bigger upside & downside)
 const RISK_PROFILES = {
-  safe: { label: 'Reliable', margin: 0.05, popularity: 0.06, speedBoost: 0.05, ratingShift: 2, hypeBoost: 0, description: 'Crowd-pleaser with low variance.' },
-  classic: { label: 'Classic', margin: 0.15, popularity: 0.02, ratingShift: 1, hypeBoost: 0, description: 'Balanced staple with steady returns.' },
-  bold: { label: 'Bold Fusion', margin: 0.4, popularity: -0.02, hypeBoost: 1, ratingShift: 0, description: 'High reward if the rumor lines up.' },
-  experimental: { label: 'Experimental', margin: 0.65, popularity: -0.05, speedPenalty: 0.03, hypeBoost: 2, ratingShift: -1, description: 'Creative combo that can wow critics or confuse the line.' },
-  volatile: { label: 'High Risk', margin: 0.85, popularity: -0.08, speedPenalty: 0.05, hypeBoost: 3, ratingShift: -2, description: 'Wild swings. Can spike hype or tank reviews.' },
+  safe: {
+    label: 'Reliable',
+    margin: 0.02,
+    popularity: 0.08,
+    speedBoost: 0.08,
+    ratingShift: 3,
+    hypeBoost: -1,
+    description: 'Crowd-pleaser with low variance and low upside.',
+  },
+  classic: {
+    label: 'Classic',
+    margin: 0.18,
+    popularity: 0.03,
+    ratingShift: 1,
+    hypeBoost: 0,
+    description: 'Baseline staple. Most consistent path to steady growth.',
+  },
+  bold: {
+    label: 'Bold Fusion',
+    margin: 0.55,
+    popularity: -0.04,
+    speedPenalty: 0.02,
+    hypeBoost: 2,
+    ratingShift: -1,
+    description: 'High margin and hype, but tougher on rating when it whiffs.',
+  },
+  experimental: {
+    label: 'Experimental',
+    margin: 0.8,
+    popularity: -0.08,
+    speedPenalty: 0.05,
+    hypeBoost: 4,
+    ratingShift: -2,
+    description: 'Big hype spikes when it hits; ratings tank on bad days.',
+  },
+  volatile: {
+    label: 'High Risk',
+    margin: 1.1,
+    popularity: -0.12,
+    speedPenalty: 0.06,
+    hypeBoost: 6,
+    ratingShift: -3,
+    description: 'Lottery ticket: can explode your brand or nearly sink it.',
+  },
 };
 
 const buildDishFromBlueprint = (blueprint, { name, keySuffix } = {}) => {
@@ -463,11 +503,40 @@ const buildDishFromBlueprint = (blueprint, { name, keySuffix } = {}) => {
   };
 };
 
+// PATCH 2: Sharper pricing tradeoffs
 const PRICE_POINTS = {
-  street: { id: 'street', label: 'Street', price: 9, popularity: 1.15, quality: 0.85, blurb: 'Cheap, fills the line but dings quality.' },
-  market: { id: 'market', label: 'Market', price: 12, popularity: 1, quality: 1, blurb: 'Balanced reputation + demand.' },
-  premium: { id: 'premium', label: 'Premium', price: 15, popularity: 0.85, quality: 1.15, blurb: 'High ticket average, picky guests.' },
-  vip: { id: 'vip', label: 'VIP', price: 18, popularity: 0.7, quality: 1.35, blurb: 'Boutique pricing for superfans. Big hype if service holds.' },
+  street: {
+    id: 'street',
+    label: 'Street',
+    price: 9,
+    popularity: 1.25,
+    quality: 0.8,
+    blurb: 'Max volume, but guests expect less polish.',
+  },
+  market: {
+    id: 'market',
+    label: 'Market',
+    price: 12,
+    popularity: 1,
+    quality: 1,
+    blurb: 'Balanced reputation + demand.',
+  },
+  premium: {
+    id: 'premium',
+    label: 'Premium',
+    price: 16,
+    popularity: 0.8,
+    quality: 1.25,
+    blurb: 'Higher ticket and expectations; great if rating stays strong.',
+  },
+  vip: {
+    id: 'vip',
+    label: 'VIP',
+    price: 19,
+    popularity: 0.6,
+    quality: 1.45,
+    blurb: 'Huge upside on great days; punishing if reviews slip.',
+  },
 };
 
 const HELPERS = [
@@ -476,6 +545,99 @@ const HELPERS = [
   { id: 'grill', name: 'Grill Anchor', description: 'Keeps proteins flowing, +8% cap, +5 charm.', cost: 65, efficiency: 0.12, charm: 0.05, capacity: 0.08 },
   { id: 'host', name: 'Hype Host', description: 'Lines move slower but guests stay chill.', cost: 55, efficiency: 0, charm: 0.18, capacity: 0 },
 ];
+
+// --- STARTING PROFILES + LOAN SYSTEM ------------------------
+
+const STARTER_PROFILES = [
+  {
+    id: 'steady',
+    name: 'Steady Operator',
+    description: 'Small loan, softer deadline, safer start.',
+    startingMoney: 400, // cash BEFORE loan
+    loanAmount: 300, // total loan you must repay
+    loanDueDay: 14, // must be repaid by end of this day
+    startingHype: 35,
+    startingReputation: 55,
+  },
+  {
+    id: 'hustler',
+    name: 'Pop-Up Hustler',
+    description: 'Balanced stats and pressure.',
+    startingMoney: 520,
+    loanAmount: 600,
+    loanDueDay: 10,
+    startingHype: 40,
+    startingReputation: 48,
+  },
+  {
+    id: 'high_roller',
+    name: 'High Roller',
+    description: 'Big money, brutal deadline.',
+    startingMoney: 650,
+    loanAmount: 1000,
+    loanDueDay: 7,
+    startingHype: 50,
+    startingReputation: 42,
+  },
+];
+
+const getStarterProfileById = (id) => STARTER_PROFILES.find((p) => p.id === id) || STARTER_PROFILES[1];
+
+/**
+ * Prompt once for a starting profile.
+ * Reuses the same profile on further resets in this run.
+ */
+const chooseStarterProfile = () => {
+  if (state.starterProfileId) {
+    return getStarterProfileById(state.starterProfileId);
+  }
+
+  const message = [
+    'Pick your launch style:',
+    '',
+    '1) Steady Operator – small loan, safer runway (loan $300 due Day 14)',
+    '2) Pop-Up Hustler – your current baseline (loan $600 due Day 10)',
+    '3) High Roller – big bankroll, loan $1000 due Day 7',
+    '',
+    'Type 1, 2, or 3:',
+  ].join('\n');
+
+  const promptFn = typeof window !== 'undefined' ? window.prompt : null;
+  const choice = promptFn ? promptFn(message, '2') : '2';
+  const index = Number(choice);
+  const profile = STARTER_PROFILES[Number.isFinite(index) && index >= 1 && index <= 3 ? index - 1 : 1];
+
+  state.starterProfileId = profile.id;
+  return profile;
+};
+
+/**
+ * Apply profile stats + loan to the core economy fields.
+ * This is where we actually set day, money, hype, rep, and loan tracking.
+ */
+const applyStarterProfile = (profile) => {
+  // Day always starts at 1 for a fresh run
+  state.day = 1;
+
+  // Loan tracking
+  state.loanPrincipal = profile.loanAmount;
+  state.loanDueDay = profile.loanDueDay;
+  state.loanPaid = false;
+  state.loanDefaulted = false;
+
+  // Starting economy: base cash + loan immediately usable
+  const startingCash = profile.startingMoney + profile.loanAmount;
+  state.money = startingCash;
+
+  state.hype = profile.startingHype;
+  state.reputation = profile.startingReputation;
+
+  logServiceMessage(
+    `${profile.name} chosen: Starting with ${currency(startingCash)} (includes ${currency(
+      profile.loanAmount,
+    )} loan due by Day ${profile.loanDueDay}).`,
+  );
+};
 
 const FORM_OPTIONS = [
   { id: 'Bowl', label: 'Bowl', description: 'Layered base, steady service.' },
@@ -489,6 +651,71 @@ const FLAVOR_OPTIONS = [
   { id: 'Heat', label: 'Heat', description: 'Spice and punchy zest.' },
   { id: 'Fresh', label: 'Fresh', description: 'Crunchy greens, clean finish.' },
   { id: 'Tropical', label: 'Tropical', description: 'Fruit-forward, vacation vibes.' },
+];
+
+// PATCH 3: Stronger lineup synergies (reward smart 3-item menus)
+const LINEUP_SYNERGIES = [
+  {
+    id: 'full-spread',
+    label: 'Full spread',
+    description: 'Anchor bowl + handheld + drink cover every craving.',
+    check(dishes) {
+      if (dishes.length < 3) return null;
+      const forms = new Set(dishes.map((dish) => dish.form));
+      const hasBowl = forms.has('Bowl');
+      const hasHandheld = forms.has('Handheld') || forms.has('Wrap');
+      const hasDrink = forms.has('Drink');
+      if (hasBowl && hasHandheld && hasDrink) {
+        return { demandMod: 0.22, ratingMod: 6, hypeMod: 4 };
+      }
+      return null;
+    },
+  },
+  {
+    id: 'flavor-band',
+    label: 'Flavor band',
+    description: 'Three distinct flavor profiles widen appeal.',
+    check(dishes) {
+      if (dishes.length < 3) return null;
+      const flavors = new Set(dishes.map((dish) => dish.flavor));
+      if (flavors.size >= 3) {
+        return { demandMod: 0.14, ratingMod: 3, hypeMod: 2 };
+      }
+      return null;
+    },
+  },
+  {
+    id: 'anchor-plus-wildcard',
+    label: 'Anchor + wildcard',
+    description: 'Two reliable staples plus one risky experiment.',
+    check(dishes) {
+      if (dishes.length < 3) return null;
+      const safeish = ['safe', 'classic'];
+      const boldish = ['bold', 'experimental', 'volatile'];
+      const safeCount = dishes.filter((dish) => safeish.includes(dish?.risk?.id || dish?.risk)).length;
+      const boldCount = dishes.filter((dish) => boldish.includes(dish?.risk?.id || dish?.risk)).length;
+      if (safeCount >= 2 && boldCount >= 1) {
+        return { demandMod: 0.09, ratingMod: 2, hypeMod: 5 };
+      }
+      return null;
+    },
+  },
+  {
+    id: 'closer-drink',
+    label: 'Sweet closer',
+    description: 'Fast, low-cost drink boosts per-guest revenue.',
+    check(dishes) {
+      if (dishes.length < 3) return null;
+      const drink = dishes.find((dish) => dish.form === 'Drink');
+      if (!drink) return null;
+      const costTier = Number(drink.costTier ?? drink.tiers?.cost ?? 3);
+      const prepTier = Number(drink.prepTier ?? drink.tiers?.prep ?? 3);
+      if (costTier <= 2 && prepTier <= 2) {
+        return { demandMod: 0.08, ratingMod: 0, hypeMod: 2 };
+      }
+      return null;
+    },
+  },
 ];
 
 const AUDIENCE_TRENDS = [
@@ -554,42 +781,43 @@ const AUDIENCE_TRENDS = [
   },
 ];
 
+// PATCH 7: Swingier daily events (bigger boom & bust days)
 const EVENTS = [
   {
     id: 'bluebird',
     title: 'Bluebird Skies',
     description: 'Sunshine brings the neighborhood out in force.',
-    effects: { turnout: 0.25, hype: 2, rating: 4 },
+    effects: { turnout: 0.4, hype: 3, rating: 5 },
   },
   {
     id: 'rain',
     title: 'Rain Drizzle',
     description: 'Rain jackets and umbrellas thin the crowd.',
-    effects: { turnout: -0.2, hype: -1, rating: -4 },
+    effects: { turnout: -0.35, hype: -2, rating: -6 },
   },
   {
     id: 'critic',
     title: 'Local Blogger Drops In',
     description: 'Serve fast and keep them happy for bonus rep.',
-    effects: { turnout: 0.1, hype: 1, rating: 6 },
+    effects: { turnout: 0.08, hype: 2, rating: 9 },
   },
   {
     id: 'rush-hour',
     title: 'Rush Hour Detour',
     description: 'Office crowd spills over for a surprise spike.',
-    effects: { turnout: 0.18, hype: 0, rating: 2 },
+    effects: { turnout: 0.28, hype: 1, rating: 3 },
   },
   {
     id: 'supply',
     title: 'Supplier Delay',
     description: 'Ingredients arrive tight, so prep is slower.',
-    effects: { turnout: -0.05, hype: 0, rating: -3, speed: -0.08 },
+    effects: { turnout: -0.12, hype: -1, rating: -4, speed: -0.1 },
   },
   {
     id: 'festival',
     title: 'Street Fest Nearby',
     description: 'Crowd energy is high, but expectations too.',
-    effects: { turnout: 0.2, hype: 3, rating: 0 },
+    effects: { turnout: 0.35, hype: 4, rating: -1 },
   },
 ];
 
@@ -600,11 +828,30 @@ const EVENT_CONTEXT_TAGS = {
   'rush-hour': ['officeLunch'],
 };
 
+const STRIKE_BRIBE_STORIES = [
+  'A health inspector slides a file across the counter: "{amount} for a fresh slate, and this paperwork never existed."',
+  'Your fixer cousin texts: "{amount} buys a round of bao for the committee and erases one strike."',
+  'A neighborhood blogger whispers, "Grease the hype crew with {amount} and those angry posts disappear."',
+  'A city clerk winks: "{amount} keeps the complaint line mysteriously busy elsewhere tonight."',
+];
+
+const formatStrikeBribeStory = (amount) => {
+  const template = STRIKE_BRIBE_STORIES[Math.floor(Math.random() * STRIKE_BRIBE_STORIES.length)];
+  return template.replace('{amount}', currency(amount));
+};
+
 const SERVICE_STEP_MIN = 1;
 const SERVICE_STEP_VARIANCE = 3;
 const SERVICE_INTERVAL_MS = 640;
 const SUPPLY_COST_PER_UNIT = 4;
 const SUPPLY_MAX_UNITS = 80;
+const getSupplyCapacityLimitFromState = (stateRef) => {
+  const truckCapacity = Number(stateRef?.truck?.capacity);
+  if (!Number.isNaN(truckCapacity) && truckCapacity > 0) {
+    return Math.max(1, Math.round(truckCapacity));
+  }
+  return SUPPLY_MAX_UNITS;
+};
 
 class InventoryManager {
   constructor(stateRef) {
@@ -624,9 +871,11 @@ class InventoryManager {
   }
 
   restock(units) {
-    const amount = clamp(units || 0, 0, SUPPLY_MAX_UNITS);
-    if (amount <= 0) return 0;
+    const capacity = getSupplyCapacityLimitFromState(this.state);
     const current = this.units;
+    const room = Math.max(capacity - current, 0);
+    const amount = clamp(units || 0, 0, room);
+    if (amount <= 0) return 0;
     this.state.inventory.units = current + amount;
     if (current === 0) {
       this.state.inventory.age = 0;
@@ -695,6 +944,11 @@ class InventoryManager {
   resetPurchasePlan() {
     this.state.purchaseUnits = 20;
     this.state.purchaseCost = 0;
+  }
+
+  reset() {
+    this.state.inventory = { units: 0, age: 0 };
+    this.resetPurchasePlan();
   }
 
   describeRisk(units = this.units, age = this.age) {
@@ -1198,6 +1452,24 @@ const state = {
   ownedUpgrades: new Set(),
   upgradeBonuses: createUpgradeBonusState(),
   totalUpgradeUpkeep: 0,
+  strikeBribeUsed: false,
+  starterProfileId: null,
+  loanPrincipal: 0,
+  loanDueDay: null,
+  loanPaid: false,
+  loanDefaulted: false,
+};
+
+const getSupplyCapacityLimit = () => getSupplyCapacityLimitFromState(state);
+
+const enforceSupplyCapacity = () => {
+  const cap = getSupplyCapacityLimit();
+  if (typeof state.inventory.units === 'number') {
+    state.inventory.units = Math.min(Math.max(state.inventory.units, 0), cap);
+  } else {
+    state.inventory.units = 0;
+  }
+  state.purchaseUnits = clamp(state.purchaseUnits || 0, 0, cap);
 };
 
 const PHASE_SEQUENCE = ['prep', 'service', 'results'];
@@ -1209,6 +1481,9 @@ const PHASE_TIPS = {
 
 const setPhase = (nextPhase) => {
   state.phase = nextPhase;
+  if (nextPhase === 'prep') {
+    state.strikeBribeUsed = false;
+  }
   updatePhaseGuide();
   updatePhasePanels();
 };
@@ -1303,6 +1578,7 @@ const recalculateUpgradeEffects = () => {
 };
 
 recalculateUpgradeEffects();
+enforceSupplyCapacity();
 
 const getActiveContexts = () => {
   const contexts = new Set();
@@ -1378,6 +1654,7 @@ const cacheElements = () => {
   elements.eventLibrary = document.getElementById('event-library');
   elements.prepNote = document.getElementById('prep-note');
   elements.prepSelection = document.getElementById('prep-selection');
+  elements.prepSynergyNote = document.getElementById('prep-synergy-note');
   elements.helperNote = document.getElementById('helper-note');
   elements.helperSelect = document.getElementById('helper-select');
   elements.hypeBar = document.getElementById('hype-bar');
@@ -1430,6 +1707,7 @@ const cacheElements = () => {
   elements.forecastSellout = document.getElementById('forecast-sellout');
   elements.stockNote = document.getElementById('stock-note');
   elements.failOverlay = document.getElementById('fail-overlay');
+  elements.failVideoOverlay = document.getElementById('fail-video-overlay');
   elements.failReason = document.getElementById('fail-reason');
   elements.failDetail = document.getElementById('fail-detail');
   elements.failReset = document.getElementById('fail-reset');
@@ -1461,7 +1739,6 @@ const cacheElements = () => {
   elements.modalRepMeter = document.getElementById('modal-rep-meter');
   elements.modalNextDay = document.getElementById('modal-next-day');
   elements.modalStay = document.getElementById('modal-stay');
-  elements.modalCloseReport = document.getElementById('modal-close-report');
   elements.serviceStats = {
     served: document.getElementById('stat-served'),
     angry: document.getElementById('stat-angry'),
@@ -1482,6 +1759,9 @@ const cacheElements = () => {
     upkeep: document.getElementById('breakdown-upkeep'),
     telemetry: document.getElementById('dish-telemetry'),
   };
+  elements.synergyList = document.getElementById('synergy-list');
+  elements.lossVideo = document.getElementById('loss-video');
+  elements.strikePayoffButton = document.getElementById('strike-payoff');
 };
 
 const GAUGE_ICONS = {
@@ -2156,6 +2436,7 @@ const calculateComboEffects = (dishes) => {
       audience: state.audienceTrend || null,
       evaluations: [],
       contexts: getActiveContexts(),
+      lineupSynergies: [],
     };
   }
   const contexts = getActiveContexts();
@@ -2165,9 +2446,33 @@ const calculateComboEffects = (dishes) => {
   const hiddenCount = evaluations.filter((evalResult) => evalResult.hiddenTitle).length;
   const audience = state.audienceTrend;
   const mods = audience?.modifiers || {};
-  const demandMod = clamp(1 + tierAverage * 0.12 + (mods.popularity || 0), 0.65, 1.5);
-  const ratingMod = (mods.rating || 0) + tierAverage * 4;
-  const hypeMod = (mods.hype || 0) + hiddenCount * 2;
+
+  const synergyResults = [];
+  let synergyDemand = 0;
+  let synergyRating = 0;
+  let synergyHype = 0;
+  (LINEUP_SYNERGIES || []).forEach((synergy) => {
+    if (typeof synergy?.check !== 'function') return;
+    const result = synergy.check(dishes);
+    if (result) {
+      const entry = {
+        id: synergy.id,
+        label: synergy.label,
+        description: synergy.description,
+        demandMod: result.demandMod || 0,
+        ratingMod: result.ratingMod || 0,
+        hypeMod: result.hypeMod || 0,
+      };
+      synergyResults.push(entry);
+      synergyDemand += entry.demandMod;
+      synergyRating += entry.ratingMod;
+      synergyHype += entry.hypeMod;
+    }
+  });
+
+  const demandMod = clamp(1 + tierAverage * 0.12 + (mods.popularity || 0) + synergyDemand, 0.65, 1.75);
+  const ratingMod = (mods.rating || 0) + tierAverage * 4 + synergyRating;
+  const hypeMod = (mods.hype || 0) + hiddenCount * 2 + synergyHype;
   return {
     demandMod,
     ratingMod,
@@ -2177,6 +2482,7 @@ const calculateComboEffects = (dishes) => {
     audience,
     evaluations,
     contexts,
+    lineupSynergies: synergyResults,
   };
 };
 
@@ -2339,12 +2645,15 @@ const updateHelperNote = () => {
 const toggleDish = (id) => {
   const dish = getCraftedDishById(id);
   if (!dish) return;
+
+  const maxSlots = getMaxLineupSlots();
   const selected = new Set(state.selectedDishes);
+
   if (selected.has(id)) {
     selected.delete(id);
   } else {
-    if (state.selectedDishes.length === 3) {
-      setPrepMessage('Three dishes max. Swap one out to add another.');
+    if (state.selectedDishes.length >= maxSlots) {
+      setPrepMessage(`${maxSlots} dishes max at your current reputation. Grow your rep to unlock more slots.`);
       return;
     }
     const blueprintKey = getDishBlueprintKey(dish);
@@ -2359,6 +2668,7 @@ const toggleDish = (id) => {
     }
     selected.add(id);
   }
+
   state.selectedDishes = Array.from(selected);
   updateDishUI();
   updateSupplyUI();
@@ -2369,8 +2679,50 @@ const updateDishUI = () => {
   cards.forEach((card) => {
     card.classList.toggle('active', state.selectedDishes.includes(card.dataset.id));
   });
-  elements.prepSelection.textContent = `${state.selectedDishes.length} / 3 dishes selected`;
+
+  const maxSlots = getMaxLineupSlots();
+  elements.prepSelection.textContent =
+    `${state.selectedDishes.length} / ${maxSlots} dishes selected`;
+
   updateEnvironmentHints(state.lastEvent);
+  updatePrepSynergyNote();
+};
+
+const updatePrepSynergyNote = () => {
+  if (!elements.prepSynergyNote) return;
+
+  const dishes = getSelectedDishes();
+  const maxSlots = getMaxLineupSlots();
+
+  if (!dishes.length) {
+    elements.prepSynergyNote.textContent = '';
+    return;
+  }
+
+  // Synergies kick in at 3+ dishes AND only if your rep supports 3+ slots
+  if (maxSlots < 3) {
+    elements.prepSynergyNote.textContent =
+      'Synergies unlock once your reputation is high enough to run 3 dishes.';
+    return;
+  }
+
+  if (dishes.length < 3) {
+    const remaining = 3 - dishes.length;
+    elements.prepSynergyNote.textContent =
+      `Add ${remaining} more dish${remaining === 1 ? '' : 'es'} to unlock synergies.`;
+    return;
+  }
+
+  const comboEffects = calculateComboEffects(dishes);
+  const synergies = comboEffects.lineupSynergies || [];
+  if (!synergies.length) {
+    elements.prepSynergyNote.textContent =
+      'No synergies yet. Mix formats and flavors for boosts.';
+    return;
+  }
+
+  elements.prepSynergyNote.textContent =
+    `Synergies: ${synergies.map((syn) => syn.label).join(', ')}`;
 };
 
 const refreshDishLibrary = ({ showHint = false } = {}) => {
@@ -2382,7 +2734,8 @@ const refreshDishLibrary = ({ showHint = false } = {}) => {
     if (!state.craftedDishes.length) {
       setPrepMessage('Recipe Lab: craft a format + ingredient combo before running service.');
     } else if (!state.selectedDishes.length) {
-      setPrepMessage('Select up to 3 crafted dishes to prep.');
+      const maxSlots = getMaxLineupSlots();
+      setPrepMessage(`Select up to ${maxSlots} crafted dishes to prep.`);
     }
   }
   updateSupplyUI();
@@ -2390,6 +2743,43 @@ const refreshDishLibrary = ({ showHint = false } = {}) => {
 
 const setPrepMessage = (message) => {
   elements.prepNote.textContent = message;
+};
+
+const attemptStrikePayoff = () => {
+  if (state.phase !== 'prep') {
+    setPrepMessage('Handle hush deals during prep, before tickets fly.');
+    return;
+  }
+  if (state.strikeBribeUsed) {
+    setPrepMessage('You already cashed in a favor this prep.');
+    return;
+  }
+  if (state.strikes <= 0) {
+    setPrepMessage('Clean record. No strikes to smooth over.');
+    return;
+  }
+  if (state.money <= 0) {
+    setPrepMessage('No cash on hand to pay anyone off.');
+    return;
+  }
+  const ratio = 0.4 + Math.random() * 0.2;
+  const cost = Math.min(state.money, Math.max(1, Math.round(state.money * ratio)));
+  if (cost <= 0) {
+    setPrepMessage('Need at least a little cash before anyone listens.');
+    return;
+  }
+  const story = formatStrikeBribeStory(cost);
+  const confirmMessage = `${story}\n\nPay ${currency(cost)} to erase one strike?`;
+  const confirmed = typeof window !== 'undefined' ? window.confirm(confirmMessage) : true;
+  if (!confirmed) {
+    setPrepMessage('Kept your cash. Strikes remain for now.');
+    return;
+  }
+  state.money -= cost;
+  state.strikes = Math.max(0, state.strikes - 1);
+  state.strikeBribeUsed = true;
+  setPrepMessage(`${story} Strike count eased to ${state.strikes} / 3.`);
+  updateHUD();
 };
 
 const attemptPurchaseUpgrade = (upgradeId) => {
@@ -2406,8 +2796,10 @@ const attemptPurchaseUpgrade = (upgradeId) => {
   state.money -= upgrade.cost;
   state.ownedUpgrades.add(upgrade.id);
   recalculateUpgradeEffects();
+  enforceSupplyCapacity();
   updateHUD();
   renderUpgradeDeck();
+  updateSupplyUI();
   setPrepMessage(`${upgrade.name} installed. Upkeep ${formatCurrencySigned(upgrade.upkeep || 0)}/day.`);
 };
 
@@ -2420,11 +2812,17 @@ const handleUpgradeListClick = (event) => {
 };
 
 const handleSupplyChange = (event) => {
-  let value = parseInt(event.target.value, 10);
+  const capacity = getSupplyCapacityLimit();
+  let rawValue = parseInt(event.target.value, 10);
+  if (Number.isNaN(rawValue)) rawValue = 0;
+  let value = rawValue;
   if (Number.isNaN(value)) value = 0;
-  value = clamp(value, 0, SUPPLY_MAX_UNITS);
+  value = clamp(value, 0, capacity);
   state.purchaseUnits = value;
   event.target.value = value;
+  if (rawValue > capacity) {
+    setPrepMessage(`Truck capacity limits supplies to ${formatUnits(capacity)}.`);
+  }
   updateSupplyUI();
 };
 
@@ -2458,6 +2856,171 @@ const rollAudienceTrend = () => {
   updateAudienceUI();
 };
 
+// === REPUTATION PROGRESSION SYSTEM =======================================
+
+// Reputation ranges drive unlocks:
+//  0–19  : Rookie truck      → 2 lineup slots, Street/Market, solo only
+//  20–39 : Up-and-coming     → 3 slots, Street/Market, Runner unlocked
+//  40–59 : Neighborhood name → 4 slots, + Premium, Grill unlocked
+//  60–79 : City favorite     → 5 slots, + VIP, Host unlocked
+//  80+   : Destination truck → 6 slots, full price scale, full crew
+
+function getReputationTier(rep) {
+  const value = Math.max(0, Math.min(100, Number(rep) || 0));
+
+  if (value >= 80) {
+    return {
+      id: 'legend',
+      label: 'Destination truck',
+      maxLineupSlots: 6,
+      unlockedPriceIds: ['street', 'market', 'premium', 'vip'],
+      unlockedHelperIds: ['none', 'runner', 'grill', 'host'],
+    };
+  }
+  if (value >= 60) {
+    return {
+      id: 'city_favorite',
+      label: 'City favorite',
+      maxLineupSlots: 5,
+      unlockedPriceIds: ['street', 'market', 'premium', 'vip'],
+      unlockedHelperIds: ['none', 'runner', 'grill', 'host'],
+    };
+  }
+  if (value >= 40) {
+    return {
+      id: 'neighborhood_name',
+      label: 'Neighborhood name',
+      maxLineupSlots: 4,
+      unlockedPriceIds: ['street', 'market', 'premium'],
+      unlockedHelperIds: ['none', 'runner', 'grill'],
+    };
+  }
+  if (value >= 20) {
+    return {
+      id: 'up_and_coming',
+      label: 'Up-and-coming',
+      maxLineupSlots: 3,
+      unlockedPriceIds: ['street', 'market'],
+      unlockedHelperIds: ['none', 'runner'],
+    };
+  }
+  return {
+    id: 'rookie',
+    label: 'Rookie truck',
+    maxLineupSlots: 2,
+    unlockedPriceIds: ['street', 'market'],
+    unlockedHelperIds: ['none'],
+  };
+}
+
+function getMaxLineupSlots() {
+  const tier = getReputationTier(state.reputation || 0);
+  return tier.maxLineupSlots;
+}
+
+function getUnlockedPriceIds() {
+  const tier = getReputationTier(state.reputation || 0);
+  // Safety: only keep price IDs that actually exist in PRICE_POINTS
+  return tier.unlockedPriceIds.filter((id) => PRICE_POINTS[id]);
+}
+
+function getUnlockedHelperIds() {
+  const tier = getReputationTier(state.reputation || 0);
+  const validIds = new Set(HELPERS.map((h) => h.id));
+  return tier.unlockedHelperIds.filter((id) => validIds.has(id));
+}
+
+// Clamp selected dishes to the allowed lineup size
+function enforceLineupCap() {
+  const maxSlots = getMaxLineupSlots();
+  if (state.selectedDishes.length > maxSlots) {
+    state.selectedDishes = state.selectedDishes.slice(0, maxSlots);
+  }
+}
+
+// Lock/unlock price radio buttons by reputation
+function applyPriceLocksToUI() {
+  const unlockedIds = new Set(getUnlockedPriceIds());
+  const radios = document.querySelectorAll('input[name="price-point"]');
+  if (!radios.length) return;
+
+  let chosen = state.pricePoint;
+  // If current price point is no longer allowed, fallback to the highest unlocked tier
+  if (!unlockedIds.has(chosen)) {
+    const fallbackOrder = ['vip', 'premium', 'market', 'street'];
+    const fallback = fallbackOrder.find((id) => unlockedIds.has(id)) || 'street';
+    chosen = fallback;
+    state.pricePoint = chosen;
+  }
+
+  radios.forEach((radio) => {
+    const id = radio.value;
+    const isUnlocked = unlockedIds.has(id);
+    radio.disabled = !isUnlocked;
+    radio.closest('label')?.classList.toggle('locked', !isUnlocked);
+    if (isUnlocked && id === chosen) {
+      radio.checked = true;
+    }
+  });
+}
+
+// Lock/unlock helpers by reputation
+function applyHelperLocksToUI() {
+  const unlockedIds = new Set(getUnlockedHelperIds());
+  const select = elements.helperSelect;
+  if (!select) return;
+
+  // Rebuild options to reflect what's actually unlocked
+  const current = state.helper || 'none';
+  const options = HELPERS.filter((h) => unlockedIds.has(h.id));
+
+  // If current helper is locked, fallback to 'none' or first unlocked
+  let chosen = current;
+  if (!unlockedIds.has(chosen)) {
+    chosen = unlockedIds.has('none') ? 'none' : (options[0]?.id || 'none');
+    state.helper = chosen;
+  }
+
+  select.innerHTML = '';
+  options.forEach((helper) => {
+    const opt = document.createElement('option');
+    opt.value = helper.id;
+    opt.textContent = helper.label || helper.name;
+    if (helper.id === chosen) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  updateHelperNote();
+}
+
+// Update the prep copy + selection counts based on rep + lineup cap
+function refreshPrepCopy() {
+  if (!elements.prepNote || !elements.prepSelection) return;
+  const maxSlots = getMaxLineupSlots();
+  const count = state.selectedDishes.length;
+
+  if (maxSlots <= 2) {
+    elements.prepNote.textContent =
+      'Recipe Lab: craft combos, then slot up to 2. Grow your reputation to unlock more slots.';
+  } else {
+    elements.prepNote.textContent =
+      `Recipe Lab: craft combos, then slot up to ${maxSlots}.`;
+  }
+
+  elements.prepSelection.textContent =
+    `${count} / ${maxSlots} dishes selected`;
+
+  updatePrepSynergyNote();
+}
+
+// Master hook: call this whenever reputation or day state changes
+function applyReputationLocks() {
+  enforceLineupCap();
+  applyPriceLocksToUI();
+  applyHelperLocksToUI();
+  refreshPrepCopy();
+}
+
 const updateHUD = () => {
   elements.hudDay.textContent = state.day;
   elements.hudMoney.textContent = currency(state.money);
@@ -2473,7 +3036,7 @@ const updateHUD = () => {
     elements.repBar.style.setProperty('--mini-progress', `${state.reputation}%`);
   }
   elements.statSpeed.textContent = `${state.truck.speed.toFixed(2)}x`;
-  elements.statCapacity.textContent = `${state.truck.capacity} guests`;
+  elements.statCapacity.textContent = `${formatUnits(getSupplyCapacityLimit())} max`;
   elements.statEfficiency.textContent = `${state.staff.efficiency.toFixed(2)}x`;
   elements.statCharm.textContent = `${state.staff.charm.toFixed(2)}x`;
 };
@@ -2537,7 +3100,8 @@ const updateSupplyUI = () => {
     elements.supplyCost.textContent = `${currency(cost)} (${currency(unitCost)}/serv)`;
   }
   if (elements.supplyStock) {
-    elements.supplyStock.textContent = `Stock: ${formatUnits(inventoryManager.units)}`;
+    const capacity = getSupplyCapacityLimit();
+    elements.supplyStock.textContent = `Stock: ${formatUnits(inventoryManager.units)} / ${formatUnits(capacity)}`;
   }
   if (elements.supplyCarry) {
     const age = inventoryManager.age;
@@ -2661,6 +3225,7 @@ const attachEvents = () => {
     state.helper = event.target.value;
     updateHelperNote();
     updateEnvironmentHints(state.lastEvent);
+    updateHUD();
   });
 
   if (elements.supplyInput) {
@@ -2699,6 +3264,9 @@ const attachEvents = () => {
 
   if (elements.failReset) {
     elements.failReset.addEventListener('click', resetCampaign);
+  }
+  if (elements.strikePayoffButton) {
+    elements.strikePayoffButton.addEventListener('click', attemptStrikePayoff);
   }
 
   if (elements.labForm) {
@@ -2754,9 +3322,6 @@ const attachEvents = () => {
   if (elements.modalStay) {
     elements.modalStay.addEventListener('click', hideResultsModal);
   }
-  if (elements.modalCloseReport) {
-    elements.modalCloseReport.addEventListener('click', hideResultsModal);
-  }
   if (elements.resultsModal) {
     elements.resultsModal.addEventListener('click', (event) => {
       if (event.target === elements.resultsModal) {
@@ -2808,11 +3373,12 @@ const advanceToNextDay = () => {
   rollAudienceTrend();
   updateComboNote();
   updateHUD();
+  applyReputationLocks();
   updateCommandButtons();
   if (elements.nextDay) {
     elements.nextDay.disabled = true;
   }
-  setPrepMessage('Tweak your lineup or price before starting the next day.');
+  setPrepMessage('Dial in your lineup and price before starting the next day.');
   hideResultsModal();
   syncModalNextDay();
 };
@@ -2842,34 +3408,54 @@ const resetServiceView = () => {
 };
 
 const resetCampaign = () => {
-  state.day = 1;
-  state.money = 520;
-  state.hype = 40;
-  state.reputation = 48;
+  const profile = chooseStarterProfile();
+
+  state.truck = { ...BASE_TRUCK_STATS };
+  state.staff = { ...BASE_STAFF_STATS };
   state.selectedDishes = [];
+  state.craftedDishes = [];
+  state.craftedCounter = 0;
+  state.comboHistory = {};
+
+  applyStarterProfile(profile);
+
   state.pricePoint = 'street';
   state.helper = 'none';
+  setPhase('prep');
+  state.simRunning = false;
   state.lastEvent = null;
   state.lastResults = null;
-  state.simRunning = false;
-  state.gameOver = false;
-  state.strikes = 0;
+  state.activeOutcome = null;
+  state.serviceCommandsUsed = new Set();
   state.commandCooldowns = {};
-  state.inventory.units = 0;
-  state.inventory.age = 0;
+  state.currentProgress = 0;
+  state.serviceProgress = 0;
+  state.serviceTimer = null;
+  state.servicePaused = false;
+  state.serviceMidpointCalled = false;
+  state.serviceFinalCalled = false;
+  state.strikes = 0;
+  state.gameOver = false;
+  state.inventory = { units: 0, age: 0 };
   state.purchaseUnits = 20;
   state.purchaseCost = 0;
-  state.lastSupplyUnitCost = SUPPLY_COST_PER_UNIT;
+  state.audienceTrend = null;
+  state.selloutWarned = false;
+  state.slowStockWarned = false;
   state.labSelection = { form: FORM_OPTIONS[0].id, flavor: FLAVOR_OPTIONS[0].id, blueprintId: null };
-  state.comboHistory = {};
+  state.lastSupplyUnitCost = SUPPLY_COST_PER_UNIT;
   state.ownedUpgrades = new Set();
   state.upgradeBonuses = createUpgradeBonusState();
   state.totalUpgradeUpkeep = 0;
+  state.strikeBribeUsed = false;
+
   recalculateUpgradeEffects();
-  setPhase('prep');
+  enforceSupplyCapacity();
+  inventoryManager.reset();
   renderLabSelects();
   updateLabPreview();
-  document.querySelector('input[name="price-point"][value="street"]').checked = true;
+  const streetRadio = document.querySelector('input[name="price-point"][value="street"]');
+  if (streetRadio) streetRadio.checked = true;
   renderHelperSelect();
   updateHelperNote();
   refreshDishLibrary({ showHint: true });
@@ -2877,17 +3463,25 @@ const resetCampaign = () => {
   updateResultsUI(null);
   hideFailureOverlay();
   hideResultsModal();
+  hideUpgradesModal();
+  hideDevtoolsModal();
+  setPrepMessage('Recipe Lab: craft combos, then select your lineup to prep.');
+  rollAudienceTrend();
+  updateComboNote();
+  updateHUD();
+  applyReputationLocks();
+  updateSupplyUI();
+  updateCommandButtons();
+  renderUpgradeDeck();
+  updateStockForecast(null);
   if (elements.startButton) {
     elements.startButton.disabled = false;
     elements.startButton.textContent = 'Start day';
   }
-  setPrepMessage('Recipe Lab: craft combos, then select up to 3 to prep.');
-  updateHUD();
-  elements.nextDay.disabled = true;
+  if (elements.nextDay) {
+    elements.nextDay.disabled = true;
+  }
   syncModalNextDay();
-  rollAudienceTrend();
-  renderUpgradeDeck();
-  updateStockForecast(null);
 };
 
 const renderEventCard = (event) => {
@@ -2912,14 +3506,18 @@ const renderEventCard = (event) => {
 };
 
 const prepareSuppliesForDay = () => {
-  const units = clamp(state.purchaseUnits || 0, 0, SUPPLY_MAX_UNITS);
-  state.purchaseUnits = units;
+  const capacity = getSupplyCapacityLimit();
+  const requested = clamp(state.purchaseUnits || 0, 0, capacity);
+  state.purchaseUnits = requested;
   const unitCost = getSupplyUnitCost();
   state.lastSupplyUnitCost = unitCost;
-  state.purchaseCost = units * unitCost;
-  if (units > 0) {
-    const added = inventoryManager.restock(units);
+  const added = requested > 0 ? inventoryManager.restock(requested) : 0;
+  state.purchaseCost = added * unitCost;
+  if (added > 0) {
     logServiceMessage(`Loaded ${formatUnits(added)} (${currency(state.purchaseCost)} @ ${currency(unitCost)}/serv).`);
+    if (added < requested) {
+      logServiceMessage(`Carryover filled the truck. Max storage is ${formatUnits(capacity)}.`);
+    }
   } else {
     state.purchaseCost = 0;
     logServiceMessage('No new supplies purchased.');
@@ -3023,6 +3621,7 @@ const calculateDayOutcome = (event) => {
     projectedDemand: 0,
     stockOnTruck: supplyBefore,
     selloutProgress: null,
+    lineupSynergies: [],
   };
   }
   const avgPopularity = dishes.reduce((sum, dish) => sum + dish.popularity, 0) / dishes.length;
@@ -3103,6 +3702,7 @@ const calculateDayOutcome = (event) => {
     comboContexts: comboEffects.contexts,
     comboScore: comboEffects.dishScore,
     comboTierAvg: comboEffects.focusScore,
+    lineupSynergies: comboEffects.lineupSynergies || [],
   };
   inventoryManager.applyOutcome(outcome);
   outcome.dishTelemetry = buildDishTelemetry(lineupData, outcome, comboEffects.audience);
@@ -3217,6 +3817,37 @@ const renderDishTelemetry = (outcome) => {
   });
 };
 
+const formatSynergyEffect = (synergy) => {
+  const parts = [];
+  if (synergy.demandMod) parts.push(`${formatSigned(Math.round(synergy.demandMod * 100))}% turnout`);
+  if (synergy.ratingMod) parts.push(`${formatSigned(Math.round(synergy.ratingMod))} rating`);
+  if (synergy.hypeMod) parts.push(`${formatSigned(Math.round(synergy.hypeMod))} hype`);
+  return parts.join(' · ') || 'Passive bonus applied.';
+};
+
+const renderSynergyBreakdown = (outcome) => {
+  if (!elements.synergyList) return;
+  elements.synergyList.innerHTML = '';
+  const synergies = outcome?.lineupSynergies || [];
+  if (!synergies.length) {
+    const empty = document.createElement('li');
+    empty.className = 'synergy-empty';
+    empty.textContent = outcome ? 'No synergies triggered.' : 'Synergies appear after service.';
+    elements.synergyList.appendChild(empty);
+    return;
+  }
+  synergies.forEach((syn) => {
+    const item = document.createElement('li');
+    const label = document.createElement('strong');
+    label.textContent = syn.label;
+    const detail = document.createElement('span');
+    detail.textContent = formatSynergyEffect(syn);
+    item.appendChild(label);
+    item.appendChild(detail);
+    elements.synergyList.appendChild(item);
+  });
+};
+
 const concludeDay = (outcome) => {
   clearServiceTimer();
   state.simRunning = false;
@@ -3252,6 +3883,7 @@ const concludeDay = (outcome) => {
   evaluateDayRisk(outcome);
   recordComboHistory(outcome);
   updateHUD();
+  applyReputationLocks();
   updateResultsUI(outcome);
   if (!state.gameOver) {
     if (elements.nextDay) {
@@ -3278,6 +3910,7 @@ const updateResultsUI = (outcome) => {
       elements.results[key].textContent = '$0';
     });
     renderDishTelemetry(null);
+    renderSynergyBreakdown(null);
     syncResultsModal(null, summaryText);
     return;
   }
@@ -3296,6 +3929,7 @@ const updateResultsUI = (outcome) => {
   elements.results.upkeep.textContent = currency(outcome.upkeep);
   elements.results.summary.textContent = summaryText;
   renderDishTelemetry(outcome);
+  renderSynergyBreakdown(outcome);
   syncResultsModal(outcome, summaryText);
 };
 
@@ -3688,9 +4322,34 @@ const finalizeInventory = (outcome) => {
 
 const evaluateDayRisk = (outcome) => {
   if (!outcome) return;
+
+  // --- loan repayment / default ---
+  if (
+    state.loanPrincipal > 0 &&
+    state.loanDueDay != null &&
+    !state.loanPaid &&
+    !state.loanDefaulted &&
+    state.day >= state.loanDueDay
+  ) {
+    if (state.money >= state.loanPrincipal) {
+      const paid = state.loanPrincipal;
+      state.money -= state.loanPrincipal;
+      state.loanPaid = true;
+      state.loanPrincipal = 0;
+      logServiceMessage(`Loan repaid on Day ${state.day}: ${currency(paid)} deducted. No strike earned.`);
+    } else {
+      state.loanDefaulted = true;
+      state.loanPrincipal = 0;
+      state.strikes = Math.min(3, state.strikes + 1);
+      logServiceMessage(`Loan default! Could not repay by Day ${state.loanDueDay}. One strike added.`);
+    }
+  }
+
+  // --- existing daily strike logic ---
   let strikesEarned = 0;
   const angryRatio = outcome.served ? outcome.angry / outcome.served : outcome.angry > 0 ? 1 : 0;
   const angryThreshold = clamp(0.4 * (state.difficulty?.angryTolerance || 1), 0.1, 0.9);
+
   if (outcome.profit <= 0) strikesEarned += 1;
   if (angryRatio >= angryThreshold) strikesEarned += 1;
   if (outcome.rating < 65) strikesEarned += 1;
@@ -3700,8 +4359,10 @@ const evaluateDayRisk = (outcome) => {
     logServiceMessage(`Warning: ${strikesEarned} strike${strikesEarned > 1 ? 's' : ''} added.`);
   }
 
+  // --- failure conditions ---
   let reason = null;
   let detail = '';
+
   if (state.money < 0) {
     reason = 'Bankrupt';
     detail = 'Cash dipped below zero.';
@@ -3721,6 +4382,25 @@ const evaluateDayRisk = (outcome) => {
   }
 
   updateHUD();
+};
+
+const handleLossVideo = (reason) => {
+  if (!elements.lossVideo || !elements.failOverlay) return;
+  const shouldPlay = reason === 'Three Strikes';
+  elements.failOverlay.classList.toggle('video-active', shouldPlay);
+  if (elements.failVideoOverlay) {
+    elements.failVideoOverlay.setAttribute('aria-hidden', shouldPlay ? 'false' : 'true');
+  }
+  if (shouldPlay) {
+    elements.lossVideo.currentTime = 0;
+    const playPromise = elements.lossVideo.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {});
+    }
+  } else {
+    elements.lossVideo.pause();
+    elements.lossVideo.currentTime = 0;
+  }
 };
 
 const triggerFailure = (reason, detail) => {
@@ -3750,6 +4430,7 @@ const triggerFailure = (reason, detail) => {
     elements.failOverlay.classList.add('show');
     elements.failOverlay.setAttribute('aria-hidden', 'false');
   }
+  handleLossVideo(reason);
   updateCommandButtons();
   updatePauseButton();
 };
@@ -3758,6 +4439,7 @@ const hideFailureOverlay = () => {
   if (!elements.failOverlay) return;
   elements.failOverlay.classList.remove('show');
   elements.failOverlay.setAttribute('aria-hidden', 'true');
+  handleLossVideo(null);
 };
 
 const init = () => {
@@ -3778,11 +4460,17 @@ const init = () => {
   updateHUD();
   renderDeveloperPanel();
   attachEvents();
-  setPrepMessage('Recipe Lab: craft combos, then select up to 3 to prep.');
+  // Message will be refined by reputation system
+  setPrepMessage('Recipe Lab: craft combos, then select your lineup to prep.');
+  applyReputationLocks();
   updateCommandButtons();
   updateEnvironmentHints(null);
   updateSupplyUI();
-  updateStockForecast(null);
+  if (!state.starterProfileId) {
+    resetCampaign();
+  } else {
+    updateStockForecast(null);
+  }
 };
 
 init();
