@@ -37,27 +37,24 @@
       </div>
       <div class="phase-track-grid">
         <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
-          <span class="phase-node-step">01</span>
-          <span class="phase-node-icon"><i class="bi bi-backpack2"></i></span>
+          <span class="phase-node-step"><i class="bi bi-backpack2"></i></span>
           <div>
             <p class="phase-node-title">Prep</p>
-            <p class="phase-node-desc">Draft lineup · stock supplies</p>
+            <p class="phase-node-desc">Draft</p>
           </div>
         </a>
         <a class="phase-node" data-phase-node="service" href="#phase-service">
-          <span class="phase-node-step">02</span>
-          <span class="phase-node-icon"><i class="bi bi-joystick"></i></span>
+          <span class="phase-node-step"><i class="bi bi-joystick"></i></span>
           <div>
-            <p class="phase-node-title">Service sim</p>
-            <p class="phase-node-desc">Roll events · fire commands</p>
+            <p class="phase-node-title">Service</p>
+            <p class="phase-node-desc">Roll</p>
           </div>
         </a>
         <a class="phase-node" data-phase-node="results" href="#phase-results">
-          <span class="phase-node-step">03</span>
-          <span class="phase-node-icon"><i class="bi bi-stars"></i></span>
+          <span class="phase-node-step"><i class="bi bi-stars"></i></span>
           <div>
             <p class="phase-node-title">Report</p>
-            <p class="phase-node-desc">Check hype swings · plan next</p>
+            <p class="phase-node-desc">Plan</p>
           </div>
         </a>
       </div>
@@ -234,55 +231,76 @@
           <span class="phase-tag">02 · Service simulation</span>
           <h2>Roll events + run tickets</h2>
         </div>
-        <div class="service-pricing">
+        <div class="event-intel-grid">
+          <div class="event-card">
+            <div class="event-meta">
+              <p class="eyebrow">Event modifier</p>
+              <h3 id="event-name">Waiting for prep</h3>
+            </div>
+            <p id="event-description">Start the day to roll weather, critic, or rush events.</p>
+            <ul class="event-effects" id="event-effects"></ul>
+          </div>
+          <div class="service-hints" id="service-hints" aria-live="polite">
+            <div class="hint-head">
+              <p class="panel-title"><i class="bi bi-megaphone"></i> Intel</p>
+              <p class="hint-sub">Radio + papers drop cues.</p>
+            </div>
+            <ul class="hint-list" id="hint-list"></ul>
+          </div>
+        </div>
+        <div class="service-price-row">
           <div class="price-panel">
             <p class="panel-title"><i class="bi bi-tags"></i> Live price point</p>
-            <p class="price-note">Adjust tickets mid-sim to react to events.</p>
             <div class="price-options">
               <label><input type="radio" name="price-point" value="street" checked /><span>Street</span></label>
               <label><input type="radio" name="price-point" value="market" /><span>Market</span></label>
               <label><input type="radio" name="price-point" value="premium" /><span>Premium</span></label>
+              <label><input type="radio" name="price-point" value="vip" /><span>VIP</span></label>
             </div>
           </div>
-        </div>
-        <div class="event-card">
-          <div class="event-meta">
-            <p class="eyebrow">Event modifier</p>
-            <h3 id="event-name">Waiting for prep</h3>
-          </div>
-          <p id="event-description">Start the day to roll weather, critic, or rush events.</p>
-          <ul class="event-effects" id="event-effects"></ul>
-        </div>
-        <div class="service-stats">
-          <div><span class="label">Served</span><span class="value" id="stat-served">0</span></div>
-          <div><span class="label">Angry</span><span class="value" id="stat-angry">0</span></div>
-          <div><span class="label">Avg wait</span><span class="value" id="stat-wait">0 min</span></div>
-          <div><span class="label">Revenue</span><span class="value" id="stat-revenue">$0</span></div>
-        </div>
-        <div class="service-hints" id="service-hints" aria-live="polite">
-          <div class="hint-head">
-            <p class="panel-title"><i class="bi bi-megaphone"></i> Intel</p>
-            <p class="hint-sub">Radio + papers drop cues.</p>
-          </div>
-          <ul class="hint-list" id="hint-list"></ul>
-        </div>
-        <div class="stock-forecast">
-          <p class="panel-title"><i class="bi bi-box-seam"></i> Stock forecast</p>
-          <div class="stock-grid">
+          <div class="service-stats">
             <div>
-              <span class="label">On truck</span>
-              <span class="value" id="forecast-stock">0 serv</span>
+              <span class="label" aria-label="Served"><i class="bi bi-people"></i></span>
+              <span class="value" id="stat-served">0</span>
             </div>
             <div>
-              <span class="label">Projected demand</span>
-              <span class="value" id="forecast-demand">0 serv</span>
+              <span class="label" aria-label="Angry"><i class="bi bi-emoji-angry"></i></span>
+              <span class="value" id="stat-angry">0</span>
             </div>
             <div>
-              <span class="label">Sellout</span>
-              <span class="value" id="forecast-sellout">--</span>
+              <span class="label" aria-label="Average wait"><i class="bi bi-stopwatch"></i></span>
+              <span class="value" id="stat-wait">0 min</span>
+            </div>
+            <div>
+              <span class="label" aria-label="Revenue"><i class="bi bi-cash-stack"></i></span>
+              <span class="value" id="stat-revenue">$0</span>
             </div>
           </div>
-          <p class="stock-note" id="stock-note">Forecast updates after prep.</p>
+          <div class="stock-forecast condensed">
+            <p class="panel-title"><i class="bi bi-box-seam"></i> Stock forecast</p>
+            <div class="stock-grid">
+              <div>
+                <span class="label">On truck</span>
+                <span class="value" id="forecast-stock">0 serv</span>
+              </div>
+              <div>
+                <span class="label">Projected demand</span>
+                <span class="value" id="forecast-demand">0 serv</span>
+              </div>
+              <div>
+                <span class="label">Sellout</span>
+                <span class="value" id="forecast-sellout">--</span>
+              </div>
+            </div>
+            <p class="stock-note" id="stock-note">Forecast updates after prep.</p>
+          </div>
+        </div>
+        <div class="service-control-grid">
+          <div class="service-commands">
+            <p class="panel-title"><i class="bi bi-controller"></i> Commands</p>
+            <div class="command-buttons" id="command-grid"></div>
+            <p class="command-note" id="command-note">Commands unlock mid-service. Cooldowns + targeting are shown below each label.</p>
+          </div>
         </div>
         <div class="service-progress">
           <div class="progress">
@@ -291,11 +309,6 @@
           <p id="service-status">Prep dishes, then hit start.</p>
         </div>
         <div class="service-feed" id="service-feed" aria-live="polite"></div>
-        <div class="service-commands">
-          <p class="panel-title"><i class="bi bi-controller"></i> Commands</p>
-          <div class="command-buttons" id="command-grid"></div>
-          <p class="command-note" id="command-note">Commands unlock mid-service. Cooldowns + targeting are shown below each label.</p>
-        </div>
         <div class="service-controls">
           <button class="btn ghost" type="button" id="pause-day" disabled>Pause</button>
         </div>
@@ -415,6 +428,7 @@
       <div class="results-modal-actions">
         <button class="btn primary" type="button" id="modal-next-day">Next day</button>
         <button class="btn secondary" type="button" id="modal-stay">Back to prep</button>
+        <button class="btn ghost" type="button" id="modal-close-report">Close report</button>
       </div>
     </div>
   </div>

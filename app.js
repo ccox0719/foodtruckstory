@@ -467,6 +467,7 @@ const PRICE_POINTS = {
   street: { id: 'street', label: 'Street', price: 9, popularity: 1.15, quality: 0.85, blurb: 'Cheap, fills the line but dings quality.' },
   market: { id: 'market', label: 'Market', price: 12, popularity: 1, quality: 1, blurb: 'Balanced reputation + demand.' },
   premium: { id: 'premium', label: 'Premium', price: 15, popularity: 0.85, quality: 1.15, blurb: 'High ticket average, picky guests.' },
+  vip: { id: 'vip', label: 'VIP', price: 18, popularity: 0.7, quality: 1.35, blurb: 'Boutique pricing for superfans. Big hype if service holds.' },
 };
 
 const HELPERS = [
@@ -1460,6 +1461,7 @@ const cacheElements = () => {
   elements.modalRepMeter = document.getElementById('modal-rep-meter');
   elements.modalNextDay = document.getElementById('modal-next-day');
   elements.modalStay = document.getElementById('modal-stay');
+  elements.modalCloseReport = document.getElementById('modal-close-report');
   elements.serviceStats = {
     served: document.getElementById('stat-served'),
     angry: document.getElementById('stat-angry'),
@@ -1747,6 +1749,7 @@ const renderRiskBadge = (dish) => {
 
 const getCraftedDishById = (id) => state.craftedDishes.find((dish) => dish.id === id);
 const getSelectedDishes = () => state.selectedDishes.map((id) => getCraftedDishById(id)).filter(Boolean);
+const getDishBlueprintKey = (dish) => dish?.blueprintId || dish?.id || null;
 const hasBlueprintCrafted = (blueprint) => {
   if (!blueprint) return false;
   const blueprintId = getBlueprintId(blueprint);
@@ -1755,8 +1758,20 @@ const hasBlueprintCrafted = (blueprint) => {
 const pruneSelectedDishes = () => {
   const allowed = new Set(state.craftedDishes.map((dish) => dish.id));
   const filtered = state.selectedDishes.filter((id) => allowed.has(id));
-  if (filtered.length !== state.selectedDishes.length) {
-    state.selectedDishes = filtered;
+  const seenBlueprints = new Set();
+  const deduped = [];
+  filtered.forEach((id) => {
+    const dish = getCraftedDishById(id);
+    const key = getDishBlueprintKey(dish);
+    if (!dish || !key) return;
+    if (seenBlueprints.has(key)) return;
+    seenBlueprints.add(key);
+    deduped.push(id);
+  });
+  const removed = state.selectedDishes.length - deduped.length;
+  state.selectedDishes = deduped;
+  if (removed > 0) {
+    setPrepMessage('Duplicate recipes removed from the lineup.');
   }
 };
 
@@ -1778,6 +1793,7 @@ const renderDishGrid = () => {
     card.type = 'button';
     card.className = 'dish-card';
     card.dataset.id = dish.id;
+    card.title = dish.risk?.description || dish.baseHiddenTitle || '';
     const riskBadge = renderRiskBadge(dish);
     const tierLabel = dish.baseTier ? `Tier ${dish.baseTier}` : 'Tier --';
     card.innerHTML = `
@@ -1792,11 +1808,9 @@ const renderDishGrid = () => {
           ${riskBadge}
         </div>
       </div>
-      <p class="dish-ingredients"><span>Base</span> ${dish.baseIngredients}</p>
-      <p class="dish-ingredients"><span>Signature</span> ${dish.signatureIngredients}</p>
+      <div class="dish-ingredients compact"><span>Base</span> ${dish.baseIngredients}</div>
+      <div class="dish-ingredients compact"><span>Signature</span> ${dish.signatureIngredients}</div>
       ${renderGaugeGroup(dish.tiers)}
-      ${dish.risk?.description ? `<p class="dish-risk-note">${dish.risk.description}</p>` : ''}
-      ${dish.baseHiddenTitle ? `<p class="dish-risk-note">Hidden combo: ${dish.baseHiddenTitle}</p>` : ''}
     `;
     card.addEventListener('click', () => toggleDish(dish.id));
     elements.dishGrid.appendChild(card);
@@ -2323,12 +2337,24 @@ const updateHelperNote = () => {
 };
 
 const toggleDish = (id) => {
+  const dish = getCraftedDishById(id);
+  if (!dish) return;
   const selected = new Set(state.selectedDishes);
   if (selected.has(id)) {
     selected.delete(id);
   } else {
     if (state.selectedDishes.length === 3) {
       setPrepMessage('Three dishes max. Swap one out to add another.');
+      return;
+    }
+    const blueprintKey = getDishBlueprintKey(dish);
+    const selectedBlueprints = new Set(
+      state.selectedDishes
+        .map((selectedId) => getDishBlueprintKey(getCraftedDishById(selectedId)))
+        .filter(Boolean),
+    );
+    if (blueprintKey && selectedBlueprints.has(blueprintKey)) {
+      setPrepMessage(`${dish.name} (same recipe) is already in the lineup.`);
       return;
     }
     selected.add(id);
@@ -2727,6 +2753,9 @@ const attachEvents = () => {
   }
   if (elements.modalStay) {
     elements.modalStay.addEventListener('click', hideResultsModal);
+  }
+  if (elements.modalCloseReport) {
+    elements.modalCloseReport.addEventListener('click', hideResultsModal);
   }
   if (elements.resultsModal) {
     elements.resultsModal.addEventListener('click', (event) => {
@@ -3487,19 +3516,20 @@ const applyLivePricePoint = (price) => {
   const prevServed = outcome.served;
   const prevAngry = outcome.angry;
   const popularityRatio = clamp(price.popularity / Math.max(previousPrice.popularity, 0.2), 0.7, 1.25);
-  const newServed = clamp(Math.round(demand * popularityRatio), 0, demand);
-  const newAngry = Math.max(demand - newServed, 0);
+  const projectedServed = clamp(Math.round(demand * popularityRatio), 0, demand);
+  const projectedAngry = Math.max(demand - projectedServed, 0);
   const qualityDiff = price.quality - previousPrice.quality;
+  const servedDelta = projectedServed - prevServed;
+  const angryDelta = projectedAngry - prevAngry;
   outcome.price = price;
   outcome.pricePerTicket = price.price + avgMargin;
-  outcome.served = newServed;
-  outcome.angry = newAngry;
-  outcome.averageWait = clamp(outcome.averageWait + (popularityRatio >= 1 ? -1 : 1), 2, 18);
-  outcome.rating = clamp(Math.round(outcome.rating + qualityDiff * 8 - (newAngry - prevAngry) * 0.4), 10, 100);
-  outcome.hypeDelta = clamp(Math.round(outcome.hypeDelta + qualityDiff * 4 + (newServed - prevServed) * 0.05), -12, 20);
-  outcome.repDelta = clamp(Math.round(outcome.repDelta + qualityDiff * 3 - (newAngry - prevAngry) * 0.04), -10, 12);
+  outcome.projectedDemand = demand;
+  outcome.projectedServed = projectedServed;
+  outcome.projectedAngry = projectedAngry;
+  outcome.rating = clamp(Math.round(outcome.rating + qualityDiff * 6 - angryDelta * 0.3), 10, 100);
+  outcome.hypeDelta = clamp(Math.round(outcome.hypeDelta + qualityDiff * 4 + servedDelta * 0.04), -12, 20);
+  outcome.repDelta = clamp(Math.round(outcome.repDelta + qualityDiff * 3 - angryDelta * 0.03), -10, 12);
   refreshEconomy(outcome);
-  recalcSupplyShortfall(outcome);
   updateLiveStats();
   updateResultsUI(outcome);
 };
