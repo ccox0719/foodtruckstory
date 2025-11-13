@@ -548,40 +548,68 @@ const HELPERS = [
 
 // --- STARTING PROFILES + LOAN SYSTEM ------------------------
 
-const STARTER_PROFILES = [
+const PROFILE_PRESETS = [
   {
-    id: 'steady',
-    name: 'Steady Operator',
-    description: 'Small loan, softer deadline, safer start.',
-    startingMoney: 400, // cash BEFORE loan
-    loanAmount: 300, // total loan you must repay
-    loanDueDay: 14, // must be repaid by end of this day
-    startingHype: 35,
-    startingReputation: 55,
+    id: 'bootstrapped_cart',
+    name: 'Bootstrapped Cart',
+    description: 'No debt, small cart, slower start but very forgiving.',
+    startingRep: 6,
+    startingHype: 4,
+    startingBank: 100,
+    startingLoan: 0,
+    truckSpeed: 0.9,
+    truckCapacity: 24,
+    loanDueDay: null,
+    loanRiskMultiplier: 0.8,
+    loanRewardMultiplier: 0.8,
   },
   {
-    id: 'hustler',
-    name: 'Pop-Up Hustler',
-    description: 'Balanced stats and pressure.',
-    startingMoney: 520,
-    loanAmount: 600,
+    id: 'family_truck',
+    name: 'Family Truck',
+    description: 'Steady starter truck with a modest community reputation.',
+    startingRep: 10,
+    startingHype: 8,
+    startingBank: 250,
+    startingLoan: 800,
+    truckSpeed: 1.0,
+    truckCapacity: 28,
     loanDueDay: 10,
-    startingHype: 40,
-    startingReputation: 48,
+    loanRiskMultiplier: 1.0,
+    loanRewardMultiplier: 1.1,
   },
   {
-    id: 'high_roller',
-    name: 'High Roller',
-    description: 'Big money, brutal deadline.',
-    startingMoney: 650,
-    loanAmount: 1000,
-    loanDueDay: 7,
-    startingHype: 50,
-    startingReputation: 42,
+    id: 'festival_regular',
+    name: 'Festival Regular',
+    description: 'Bigger rig, built for crowds, but carrying real debt.',
+    startingRep: 14,
+    startingHype: 12,
+    startingBank: 400,
+    startingLoan: 1200,
+    truckSpeed: 1.05,
+    truckCapacity: 32,
+    loanDueDay: 8,
+    loanRiskMultiplier: 1.3,
+    loanRewardMultiplier: 1.35,
+  },
+  {
+    id: 'high_roller_launch',
+    name: 'High-Roller Launch',
+    description: 'Backer-funded launch with serious expectations.',
+    startingRep: 18,
+    startingHype: 16,
+    startingBank: 600,
+    startingLoan: 1800,
+    truckSpeed: 1.12,
+    truckCapacity: 36,
+    loanDueDay: 6,
+    loanRiskMultiplier: 1.6,
+    loanRewardMultiplier: 1.7,
   },
 ];
 
-const getStarterProfileById = (id) => STARTER_PROFILES.find((p) => p.id === id) || STARTER_PROFILES[1];
+const getProfilePresetById = (id) => PROFILE_PRESETS.find((preset) => preset.id === id) || null;
+
+const getActiveProfilePreset = () => getProfilePresetById(state.starterProfileId) || null;
 
 /**
  * Prompt once for a starting profile.
@@ -589,26 +617,27 @@ const getStarterProfileById = (id) => STARTER_PROFILES.find((p) => p.id === id) 
  */
 const chooseStarterProfile = () => {
   if (state.starterProfileId) {
-    return getStarterProfileById(state.starterProfileId);
+    return getProfilePresetById(state.starterProfileId) || PROFILE_PRESETS[0];
   }
 
   const message = [
-    'Pick your launch style:',
+    'Choose your launch profile:',
     '',
-    '1) Steady Operator – small loan, safer runway (loan $300 due Day 14)',
-    '2) Pop-Up Hustler – your current baseline (loan $600 due Day 10)',
-    '3) High Roller – big bankroll, loan $1000 due Day 7',
+    '1) Bootstrapped Cart – $100 cash, no loan, low risk.',
+    '2) Family Truck – $250 cash, $800 loan due Day 10.',
+    '3) Festival Regular – $400 cash, $1,200 loan due Day 8.',
+    '4) High-Roller Launch – $600 cash, $1,800 loan due Day 6.',
     '',
-    'Type 1, 2, or 3:',
+    'Type 1, 2, 3, or 4:',
   ].join('\n');
 
   const promptFn = typeof window !== 'undefined' ? window.prompt : null;
   const choice = promptFn ? promptFn(message, '2') : '2';
   const index = Number(choice);
-  const profile = STARTER_PROFILES[Number.isFinite(index) && index >= 1 && index <= 3 ? index - 1 : 1];
+  const preset = PROFILE_PRESETS[Number.isFinite(index) && index >= 1 && index <= PROFILE_PRESETS.length ? index - 1 : 1];
 
-  state.starterProfileId = profile.id;
-  return profile;
+  state.starterProfileId = preset.id;
+  return preset;
 };
 
 /**
@@ -616,27 +645,74 @@ const chooseStarterProfile = () => {
  * This is where we actually set day, money, hype, rep, and loan tracking.
  */
 const applyStarterProfile = (profile) => {
-  // Day always starts at 1 for a fresh run
+  state.starterProfileId = profile.id;
   state.day = 1;
 
-  // Loan tracking
-  state.loanPrincipal = profile.loanAmount;
-  state.loanDueDay = profile.loanDueDay;
-  state.loanPaid = false;
+  state.profileTruckSpeed = profile.truckSpeed ?? BASE_TRUCK_STATS.speed;
+  state.profileTruckCapacity = profile.truckCapacity ?? BASE_TRUCK_STATS.capacity;
+
+  state.truck.speed = state.profileTruckSpeed;
+  state.truck.capacity = state.profileTruckCapacity;
+
+  state.loanPrincipal = Math.max(0, profile.startingLoan || 0);
+  state.loanDueDay = state.loanPrincipal > 0 ? profile.loanDueDay ?? 10 : null;
+  state.loanPaid = state.loanPrincipal <= 0;
   state.loanDefaulted = false;
+  state.loanRiskMultiplier = profile.loanRiskMultiplier ?? 1;
+  state.loanRewardMultiplier = profile.loanRewardMultiplier ?? 1;
 
-  // Starting economy: base cash + loan immediately usable
-  const startingCash = profile.startingMoney + profile.loanAmount;
+  const startingCash = profile.startingBank || 0;
   state.money = startingCash;
+  state.hype = profile.startingHype ?? state.hype;
+  state.reputation = profile.startingRep ?? state.reputation;
 
-  state.hype = profile.startingHype;
-  state.reputation = profile.startingReputation;
+  if (state.loanPrincipal > 0 && state.loanDueDay != null) {
+    logServiceMessage(
+      `${profile.name} chosen: Bank ${currency(startingCash)}, loan ${currency(state.loanPrincipal)} due Day ${state.loanDueDay}.`,
+    );
+  } else {
+    logServiceMessage(`${profile.name} chosen: Bank ${currency(startingCash)} with no lenders breathing down your neck.`);
+  }
 
-  logServiceMessage(
-    `${profile.name} chosen: Starting with ${currency(startingCash)} (includes ${currency(
-      profile.loanAmount,
-    )} loan due by Day ${profile.loanDueDay}).`,
-  );
+  syncProfileSelectionUI();
+};
+
+const applyProfileRiskAndReward = (outcome) => {
+  const profile = getActiveProfilePreset();
+  if (!profile || !outcome) return;
+  const risk = state.loanRiskMultiplier ?? profile.loanRiskMultiplier ?? 1;
+  const reward = state.loanRewardMultiplier ?? profile.loanRewardMultiplier ?? 1;
+
+  if (outcome.profit >= 0) {
+    outcome.profit = Math.round(outcome.profit * reward);
+  } else {
+    outcome.profit = Math.round(outcome.profit * risk);
+  }
+
+  outcome.hypeDelta =
+    outcome.hypeDelta >= 0 ? Math.round(outcome.hypeDelta * reward) : Math.round(outcome.hypeDelta * risk);
+
+  outcome.repDelta =
+    outcome.repDelta >= 0 ? Math.round(outcome.repDelta * reward) : Math.round(outcome.repDelta * risk);
+
+  outcome.angry = Math.max(0, Math.round(outcome.angry * risk));
+  if (outcome.served) {
+    outcome.angerRate = outcome.angry / outcome.served;
+  }
+};
+
+const syncProfileSelectionUI = () => {
+  enforceSupplyCapacity();
+  if (elements && Object.keys(elements).length) {
+    updateHUD();
+    applyReputationLocks();
+    updateSupplyUI();
+    updateCommandButtons();
+    if (typeof updateComboNote === 'function') {
+      updateComboNote();
+    }
+    updateStockForecast(null);
+  }
 };
 
 const FORM_OPTIONS = [
@@ -1414,9 +1490,9 @@ const persistDifficultySettings = () => {
 
 const state = {
   day: 1,
-  money: 520,
-  hype: 40,
-  reputation: 48,
+  money: 100,
+  hype: 10,
+  reputation: 10,
   truck: { ...BASE_TRUCK_STATS },
   staff: { ...BASE_STAFF_STATS },
   selectedDishes: [],
@@ -1458,6 +1534,10 @@ const state = {
   loanDueDay: null,
   loanPaid: false,
   loanDefaulted: false,
+  loanRiskMultiplier: 1,
+  loanRewardMultiplier: 1,
+  profileTruckSpeed: BASE_TRUCK_STATS.speed,
+  profileTruckCapacity: BASE_TRUCK_STATS.capacity,
 };
 
 const getSupplyCapacityLimit = () => getSupplyCapacityLimitFromState(state);
@@ -1471,6 +1551,11 @@ const enforceSupplyCapacity = () => {
   }
   state.purchaseUnits = clamp(state.purchaseUnits || 0, 0, cap);
 };
+
+const getProfileTruckBaseStats = () => ({
+  speed: state.profileTruckSpeed ?? BASE_TRUCK_STATS.speed,
+  capacity: state.profileTruckCapacity ?? BASE_TRUCK_STATS.capacity,
+});
 
 const PHASE_SEQUENCE = ['prep', 'service', 'results'];
 const PHASE_TIPS = {
@@ -1561,7 +1646,7 @@ const applyUpgradeEffectValue = (bonuses, key, value) => {
 
 const recalculateUpgradeEffects = () => {
   ensureUpgradeState();
-  state.truck = { ...BASE_TRUCK_STATS };
+  state.truck = { ...getProfileTruckBaseStats() };
   state.staff = { ...BASE_STAFF_STATS };
   const bonuses = createUpgradeBonusState();
   let totalUpkeep = 0;
@@ -3853,6 +3938,7 @@ const concludeDay = (outcome) => {
   state.simRunning = false;
   state.servicePaused = false;
   setPhase('results');
+  applyProfileRiskAndReward(outcome);
   state.money += outcome.profit;
   state.hype = clamp(state.hype + outcome.hypeDelta, 0, 100);
   const hypeRange = state.upgradeBonuses?.hypeRandomRange;
