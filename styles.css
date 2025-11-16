@@ -325,6 +325,75 @@ h4 {
   white-space: nowrap;
 }
 
+.dish-score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
+
+.score-badge i {
+  font-size: 0.9rem;
+}
+
+.score-badge .score-value {
+  font-family: "Share Tech Mono", monospace;
+  font-weight: 600;
+}
+
+.score-badge .score-tier {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dish-variant-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.variant-label {
+  letter-spacing: 0.12em;
+  font-size: 0.6rem;
+}
+
+.variant-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.variant-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+}
+
+.variant-stat i {
+  font-size: 0.9rem;
+}
+
 .mini-value {
   font-size: clamp(1.1rem, 2vw, 1.25rem);
   font-family: "Share Tech Mono", monospace;
@@ -548,6 +617,54 @@ h4 {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   color: var(--text-muted);
+}
+
+.dish-card-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.dish-card-remove:hover,
+.dish-card-remove:focus-visible {
+  color: var(--accent);
+}
+
+.dish-traits,
+.dish-chemistry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+}
+
+.dish-trait-pill,
+.dish-chemistry-pill {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.dish-chemistry-pill {
+  border-color: rgba(126, 213, 255, 0.4);
+  background: rgba(126, 213, 255, 0.12);
+}
+
+.dish-grade-score {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .dish-risk {

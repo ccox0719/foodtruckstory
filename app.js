@@ -1,3 +1,4 @@
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const BASE_TRUCK_STATS = Object.freeze({ speed: 1, capacity: 28 });
@@ -352,6 +353,58 @@ const COMBO_MATRIX = {
 const tierForScore = (score) => COMBO_MATRIX.tiers.find((tier) => score >= tier.min)?.name || 'F';
 const TIER_MULTIPLIER = { S: 1.2, A: 0.9, B: 0.4, C: 0, D: -0.4, F: -0.8 };
 
+const VARIANT_ADJECTIVES = [
+  'Glinting',
+  'Velvet',
+  'Smoldering',
+  'Crisp',
+  'Neon',
+  'Luminous',
+  'Aurora',
+  'Ember',
+  'Frosted',
+  'Verdant',
+];
+
+const randomVariantDelta = (range) => (Math.random() - 0.5) * range;
+
+const describeVariantAdjustments = (adjustments) => {
+  const parts = [];
+  if (typeof adjustments.popularityDelta === 'number' && adjustments.popularityDelta !== 0) {
+    const sign = adjustments.popularityDelta > 0 ? '+' : '';
+    parts.push(`${sign}${(adjustments.popularityDelta * 100).toFixed(0)}% appeal`);
+  }
+  if (typeof adjustments.prepSpeedDelta === 'number' && adjustments.prepSpeedDelta !== 0) {
+    const sign = adjustments.prepSpeedDelta > 0 ? '+' : '';
+    parts.push(`${sign}${(adjustments.prepSpeedDelta * 100).toFixed(0)}% prep speed`);
+  }
+  if (typeof adjustments.marginDelta === 'number' && adjustments.marginDelta !== 0) {
+    const sign = adjustments.marginDelta > 0 ? '+' : '';
+    parts.push(`${sign}${(adjustments.marginDelta * 100).toFixed(0)}% margin`);
+  }
+  return parts.length ? parts.join(' • ') : 'Balanced tweak';
+};
+
+const createRecipeVariant = () => {
+  const label = VARIANT_ADJECTIVES[Math.floor(Math.random() * VARIANT_ADJECTIVES.length)];
+  const adjustments = {
+    prepSpeedDelta: randomVariantDelta(0.16),
+    popularityDelta: randomVariantDelta(0.22),
+    marginDelta: randomVariantDelta(0.32),
+  };
+  const scoreDelta = Math.round(
+    adjustments.popularityDelta * 45
+      + adjustments.prepSpeedDelta * 35
+      + adjustments.marginDelta * 20,
+  );
+  return {
+    label,
+    adjustments,
+    scoreDelta,
+    note: describeVariantAdjustments(adjustments),
+  };
+};
+
 const findHiddenCombo = (blueprint) => {
   if (!blueprint) return null;
   return (
@@ -448,7 +501,7 @@ const RISK_PROFILES = {
   },
 };
 
-const buildDishFromBlueprint = (blueprint, { name, keySuffix } = {}) => {
+const buildDishFromBlueprint = (blueprint, { name, keySuffix, variant } = {}) => {
   if (!blueprint) return null;
   const tiers = {
     cost: clamp(blueprint.costTier, 1, 5),
@@ -462,15 +515,37 @@ const buildDishFromBlueprint = (blueprint, { name, keySuffix } = {}) => {
   const slug = toSlug(`${blueprint.flavor}-${blueprint.form}-${finalName || blueprint.name}`);
   const blueprintId = getBlueprintId(blueprint);
   const id = keySuffix !== undefined ? `${slug}-${keySuffix}` : slug;
+  const adjustments = variant?.adjustments || {};
+  const prepSpeedDelta = adjustments.prepSpeedDelta ?? 0;
   let prepSpeed = derivePrepSpeed(blueprint.prepTier);
   if (riskProfile.speedPenalty) prepSpeed -= riskProfile.speedPenalty;
   if (riskProfile.speedBoost) prepSpeed += riskProfile.speedBoost;
+  prepSpeed += prepSpeedDelta;
   prepSpeed = clamp(prepSpeed, 0.55, 1.35);
+  const popularityDelta = adjustments.popularityDelta ?? 0;
   let popularity = derivePopularity(blueprint.appealTier, blueprint.trendTier);
-  popularity = clamp(popularity + (riskProfile.popularity || 0), 0.75, 1.5);
-  let margin = deriveMargin(blueprint.trendTier, blueprint.costTier) + (riskProfile.margin || 0);
+  popularity = clamp(popularity + (riskProfile.popularity || 0) + popularityDelta, 0.75, 1.5);
+  const marginDelta = adjustments.marginDelta ?? 0;
+  let margin = deriveMargin(blueprint.trendTier, blueprint.costTier) + (riskProfile.margin || 0) + marginDelta;
   margin = clamp(margin, 2.3, 6);
   const baseEval = evaluateBlueprintCore(blueprint);
+  const variantScoreDelta = variant?.scoreDelta ?? 0;
+  const rawScore = baseEval.score + variantScoreDelta;
+  const clampedScore = clamp(rawScore, COMBO_MATRIX.hardRules.clampMin, COMBO_MATRIX.hardRules.clampMax);
+  const finalScore = Math.round(clampedScore);
+  const finalTier = tierForScore(clampedScore);
+  const variantMeta = variant
+    ? {
+      label: variant.label,
+      note: variant.note,
+      adjustments: {
+        prepSpeedDelta,
+        popularityDelta,
+        marginDelta,
+      },
+      scoreDelta: variantScoreDelta,
+    }
+    : null;
   return {
     id,
     name: finalName,
@@ -497,9 +572,10 @@ const buildDishFromBlueprint = (blueprint, { name, keySuffix } = {}) => {
     proteinType: blueprint.proteinType || null,
     baseType: blueprint.baseType || null,
     sauceType: blueprint.sauceType || null,
-    baseTier: baseEval.tier,
-    baseScore: baseEval.score,
+    baseTier: finalTier,
+    baseScore: finalScore,
     baseHiddenTitle: baseEval.hiddenTitle,
+    variant: variantMeta,
   };
 };
 
@@ -1559,6 +1635,7 @@ const state = {
   labSelection: { form: FORM_OPTIONS[0].id, flavor: FLAVOR_OPTIONS[0].id, blueprintId: null },
   craftedDishes: [],
   craftedCounter: 0,
+  lastCraftDay: 0,
   comboHistory: {},
   lastSupplyUnitCost: SUPPLY_COST_PER_UNIT,
   difficulty: loadDifficultySettings(),
@@ -2151,6 +2228,42 @@ const renderRiskBadge = (dish) => {
   return `<span class="dish-risk risk-${dish.risk.id}">${dish.risk.label}</span>`;
 };
 
+const VARIANT_STAT_CONFIG = [
+  { key: 'popularityDelta', icon: 'bi bi-stars', label: 'appeal' },
+  { key: 'prepSpeedDelta', icon: 'bi bi-speedometer2', label: 'prep speed' },
+  { key: 'marginDelta', icon: 'bi bi-currency-dollar', label: 'margin' },
+];
+
+const formatPercent = (value) => `${value > 0 ? '+' : ''}${Math.round(value * 100)}%`;
+
+const renderVariantStats = (variant) => {
+  if (!variant?.adjustments) return '';
+  const stats = VARIANT_STAT_CONFIG
+    .map(({ key, icon, label }) => {
+      const value = variant.adjustments[key];
+      if (typeof value !== 'number' || value === 0) return '';
+      return `<span class="variant-stat" aria-label="${formatPercent(value)} ${label}" title="${label}">
+        <i class="${icon}" aria-hidden="true"></i>
+        <span>${formatPercent(value)}</span>
+      </span>`;
+    })
+    .filter(Boolean);
+  if (!stats.length) return '';
+  return `<div class="variant-stats">${stats.join('')}</div>`;
+};
+
+const renderScoreBadge = (dish) => {
+  const score = typeof dish?.baseScore === 'number' ? dish.baseScore : '--';
+  const tier = dish?.baseTier || '--';
+  return `
+    <span class="score-badge" aria-label="Score ${score}, Tier ${tier}">
+      <i class="bi bi-graph-up"></i>
+      <span class="score-value">${score}</span>
+      <span class="score-tier">${tier}</span>
+    </span>
+  `;
+};
+
 const getCraftedDishById = (id) => state.craftedDishes.find((dish) => dish.id === id);
 const getSelectedDishes = () => state.selectedDishes.map((id) => getCraftedDishById(id)).filter(Boolean);
 const getDishBlueprintKey = (dish) => dish?.blueprintId || dish?.id || null;
@@ -2200,6 +2313,8 @@ const renderDishGrid = () => {
     card.title = dish.risk?.description || dish.baseHiddenTitle || '';
     const riskBadge = renderRiskBadge(dish);
     const tierLabel = dish.baseTier ? `Tier ${dish.baseTier}` : 'Tier --';
+    const variantLabel = dish.variant?.label ? `${dish.variant.label} variant` : 'Lab baseline';
+    const variantStats = renderVariantStats(dish.variant);
     card.innerHTML = `
       <div class="dish-card-head">
         <div>
@@ -2212,9 +2327,14 @@ const renderDishGrid = () => {
           ${riskBadge}
         </div>
       </div>
-      <div class="dish-ingredients compact"><span>Base</span> ${dish.baseIngredients}</div>
-      <div class="dish-ingredients compact"><span>Signature</span> ${dish.signatureIngredients}</div>
       ${renderGaugeGroup(dish.tiers)}
+      <div class="dish-score-row">
+        ${renderScoreBadge(dish)}
+      </div>
+      <div class="dish-variant-row">
+        <p class="mini-label variant-label">${variantLabel}</p>
+        ${variantStats}
+      </div>
     `;
     card.addEventListener('click', () => toggleDish(dish.id));
     elements.dishGrid.appendChild(card);
@@ -2239,6 +2359,8 @@ const renderMenuCodex = () => {
     article.className = 'menu-card';
     const riskBadge = renderRiskBadge(dish);
     const tierLabel = dish.baseTier ? `Tier ${dish.baseTier}` : 'Tier --';
+    const variantLabel = dish.variant?.label ? `${dish.variant.label} variant` : 'Lab baseline';
+    const variantStats = renderVariantStats(dish.variant);
     article.innerHTML = `
       <div class="dish-card-head">
         <div>
@@ -2251,6 +2373,13 @@ const renderMenuCodex = () => {
           ${riskBadge}
         </div>
       </div>
+      <div class="dish-score-row">
+        ${renderScoreBadge(dish)}
+      </div>
+      <div class="dish-variant-row">
+        <p class="mini-label variant-label">${variantLabel}</p>
+        ${variantStats}
+      </div>
       <p class="dish-ingredients"><span>Base</span> ${dish.baseIngredients}</p>
       <p class="dish-ingredients"><span>Signature</span> ${dish.signatureIngredients}</p>
       ${renderGaugeGroup(dish.tiers)}
@@ -2262,6 +2391,11 @@ const renderMenuCodex = () => {
       </ul>
       ${dish.risk?.description ? `<p class="dish-risk-note">${dish.risk.description}</p>` : ''}
       ${dish.baseHiddenTitle ? `<p class="dish-risk-note">Hidden combo: ${dish.baseHiddenTitle}</p>` : ''}
+      <div class="menu-card-actions">
+        <button type="button" class="btn tertiary menu-card-retire" data-dish-id="${dish.id}" data-action="retire">
+          Retire this recipe
+        </button>
+      </div>
     `;
     elements.menuCodex.appendChild(article);
   });
@@ -2440,10 +2574,22 @@ const craftBlueprintById = (blueprintId, { quick = false } = {}) => {
     updateLabStatus('Pick a kit before crafting.');
     return false;
   }
+  if (state.lastCraftDay === state.day) {
+    const notice = 'One recipe per day. Come back tomorrow to craft another.';
+    updateLabStatus(notice);
+    setPrepMessage(notice);
+    return false;
+  }
   state.craftedCounter += 1;
   const manualName = !quick ? elements.labName?.value.trim() : '';
-  const dishName = manualName || blueprint.name;
-  const dish = buildDishFromBlueprint(blueprint, { name: dishName, keySuffix: state.craftedCounter });
+  const variant = createRecipeVariant();
+  const dishName = manualName || `${variant.label} ${blueprint.name}`;
+  const dish = buildDishFromBlueprint(blueprint, {
+    name: dishName,
+    keySuffix: state.craftedCounter,
+    variant,
+  });
+  state.lastCraftDay = state.day;
   state.craftedDishes.push(dish);
   refreshDishLibrary({ showHint: true });
   if (!quick && elements.labName) {
@@ -2475,6 +2621,32 @@ const clearRecipeLibrary = () => {
   refreshDishLibrary({ showHint: true });
   updateLabPreview();
   updateLabStatus('Library cleared. Craft something new in the grid.');
+};
+
+const retireCraftedDish = (dishId) => {
+  const index = state.craftedDishes.findIndex((dish) => dish.id === dishId);
+  if (index === -1) return null;
+  const [removed] = state.craftedDishes.splice(index, 1);
+  state.selectedDishes = state.selectedDishes.filter((id) => id !== dishId);
+  refreshDishLibrary();
+  return removed;
+};
+
+const handleMenuCodexAction = (event) => {
+  const button = event.target.closest('.menu-card-retire');
+  if (!button) return;
+  const { dishId } = button.dataset;
+  if (!dishId) return;
+  const dish = getCraftedDishById(dishId);
+  if (!dish) return;
+  const confirmed = typeof window === 'undefined'
+    ? true
+    : window.confirm(`Retire ${dish.name}? This removes it from the lab.`);
+  if (!confirmed) return;
+  const retired = retireCraftedDish(dishId);
+  if (retired) {
+    setPrepMessage(`${retired.name} retired. Fresh variants only.`);
+  }
 };
 
 const renderCommandButtons = () => {
@@ -3417,6 +3589,9 @@ const attachEvents = () => {
   if (elements.labReset) {
     elements.labReset.addEventListener('click', clearRecipeLibrary);
   }
+  if (elements.menuCodex) {
+    elements.menuCodex.addEventListener('click', handleMenuCodexAction);
+  }
 
   elements.startButton.addEventListener('click', () => {
     if (state.simRunning) return;
@@ -3541,6 +3716,7 @@ const startCampaignWithProfile = (profile) => {
   state.selectedDishes = [];
   state.craftedDishes = [];
   state.craftedCounter = 0;
+  state.lastCraftDay = 0;
   state.comboHistory = {};
 
   applyStarterProfile(profile);
