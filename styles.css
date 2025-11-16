@@ -1961,6 +1961,110 @@ h4 {
   pointer-events: auto;
 }
 
+.profile-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 2, 6, 0.92);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1600;
+}
+
+.profile-modal.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.profile-modal-card {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 3rem);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(6, 8, 18, 0.95), rgba(16, 12, 28, 0.95));
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-modal-subtitle {
+  color: var(--text-muted);
+  max-width: 620px;
+  margin: 0;
+}
+
+.profile-option-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin-top: 0.5rem;
+}
+
+.profile-option {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.profile-option:hover,
+.profile-option:focus-visible {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.profile-option:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.profile-option-head h3 {
+  margin: 0;
+}
+
+.profile-option-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.profile-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.profile-metrics .mini-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+  display: block;
+  font-weight: 400;
+}
+
+.profile-metrics p {
+  margin: 0;
+  font-weight: 600;
+}
+
 .results-modal-card {
   position: relative;
   width: min(520px, 100%);

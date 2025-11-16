@@ -611,33 +611,70 @@ const getProfilePresetById = (id) => PROFILE_PRESETS.find((preset) => preset.id 
 
 const getActiveProfilePreset = () => getProfilePresetById(state.starterProfileId) || null;
 
-/**
- * Prompt once for a starting profile.
- * Reuses the same profile on further resets in this run.
- */
-const chooseStarterProfile = () => {
-  if (state.starterProfileId) {
-    return getProfilePresetById(state.starterProfileId) || PROFILE_PRESETS[0];
+const formatMultiplier = (value) => {
+  const numeric = Number.isFinite(Number(value)) ? Number(value) : 1;
+  const text = numeric.toFixed(2);
+  return text.endsWith('.00') ? text.slice(0, -3) : text;
+};
+
+const renderProfileOptions = () => {
+  if (!elements.profileOptions) return;
+  const markup = PROFILE_PRESETS.map((preset) => {
+    const bank = currency(preset.startingBank ?? 0);
+    const loanLabel =
+      preset.startingLoan && preset.startingLoan > 0
+        ? `${currency(preset.startingLoan)} due Day ${preset.loanDueDay ?? 'TBD'}`
+        : 'None';
+    const speed = (preset.truckSpeed ?? BASE_TRUCK_STATS.speed).toFixed(2);
+    const capacity = preset.truckCapacity ?? BASE_TRUCK_STATS.capacity;
+    const risk = formatMultiplier(preset.loanRiskMultiplier ?? 1);
+    const reward = formatMultiplier(preset.loanRewardMultiplier ?? 1);
+
+    return `
+      <button class="profile-option" type="button" data-profile-id="${preset.id}" role="listitem">
+        <div class="profile-option-head">
+          <p class="eyebrow">Launch profile</p>
+          <h3>${preset.name}</h3>
+        </div>
+        <p class="profile-option-description">${preset.description}</p>
+        <div class="profile-metrics">
+          <div>
+            <p class="mini-label">Bank</p>
+            <p>${bank}</p>
+          </div>
+          <div>
+            <p class="mini-label">Loan</p>
+            <p>${loanLabel}</p>
+          </div>
+          <div>
+            <p class="mini-label">Speed &amp; capacity</p>
+            <p>${speed}x / ${capacity}</p>
+          </div>
+          <div>
+            <p class="mini-label">Risk &amp; reward</p>
+            <p>${risk}x / ${reward}x</p>
+          </div>
+        </div>
+      </button>
+    `;
+  });
+  elements.profileOptions.innerHTML = markup.join('');
+};
+
+const showProfileModal = () => {
+  if (!elements.profileModal) return;
+  elements.profileModal.classList.add('open');
+  elements.profileModal.setAttribute('aria-hidden', 'false');
+  const firstOption = elements.profileOptions?.querySelector('[data-profile-id]');
+  if (firstOption && typeof firstOption.focus === 'function') {
+    firstOption.focus();
   }
+};
 
-  const message = [
-    'Choose your launch profile:',
-    '',
-    '1) Bootstrapped Cart – $100 cash, no loan, low risk.',
-    '2) Family Truck – $250 cash, $800 loan due Day 10.',
-    '3) Festival Regular – $400 cash, $1,200 loan due Day 8.',
-    '4) High-Roller Launch – $600 cash, $1,800 loan due Day 6.',
-    '',
-    'Type 1, 2, 3, or 4:',
-  ].join('\n');
-
-  const promptFn = typeof window !== 'undefined' ? window.prompt : null;
-  const choice = promptFn ? promptFn(message, '2') : '2';
-  const index = Number(choice);
-  const preset = PROFILE_PRESETS[Number.isFinite(index) && index >= 1 && index <= PROFILE_PRESETS.length ? index - 1 : 1];
-
-  state.starterProfileId = preset.id;
-  return preset;
+const hideProfileModal = () => {
+  if (!elements.profileModal) return;
+  elements.profileModal.classList.remove('open');
+  elements.profileModal.setAttribute('aria-hidden', 'true');
 };
 
 /**
@@ -1806,6 +1843,8 @@ const cacheElements = () => {
   elements.labKitGrid = document.getElementById('lab-kit-grid');
   elements.phaseTip = document.getElementById('phase-tip');
   elements.phaseNodes = document.querySelectorAll('[data-phase-node]');
+  elements.profileModal = document.getElementById('profile-modal');
+  elements.profileOptions = document.getElementById('profile-option-grid');
   elements.upgradesModal = document.getElementById('upgrades-modal');
   elements.upgradesTrigger = document.getElementById('upgrades-trigger');
   elements.upgradesClose = document.getElementById('upgrades-close');
@@ -3340,6 +3379,9 @@ const attachEvents = () => {
   if (elements.devtoolsReset) {
     elements.devtoolsReset.addEventListener('click', resetDifficultySettings);
   }
+  if (elements.profileOptions) {
+    elements.profileOptions.addEventListener('click', handleProfileSelection);
+  }
   DIFFICULTY_FIELDS.forEach((field) => {
     const input = document.getElementById(field.inputId);
     if (!input) return;
@@ -3492,9 +3534,8 @@ const resetServiceView = () => {
   updateStockForecast(null);
 };
 
-const resetCampaign = () => {
-  const profile = chooseStarterProfile();
-
+const startCampaignWithProfile = (profile) => {
+  hideProfileModal();
   state.truck = { ...BASE_TRUCK_STATS };
   state.staff = { ...BASE_STAFF_STATS };
   state.selectedDishes = [];
@@ -3567,6 +3608,23 @@ const resetCampaign = () => {
     elements.nextDay.disabled = true;
   }
   syncModalNextDay();
+};
+
+const handleProfileSelection = (event) => {
+  const button = event.target instanceof Element ? event.target.closest('[data-profile-id]') : null;
+  if (!button) return;
+  const profile = getProfilePresetById(button.dataset.profileId);
+  if (!profile) return;
+  startCampaignWithProfile(profile);
+};
+
+const resetCampaign = () => {
+  const profile = getActiveProfilePreset();
+  if (!profile) {
+    showProfileModal();
+    return;
+  }
+  startCampaignWithProfile(profile);
 };
 
 const renderEventCard = (event) => {
@@ -4530,6 +4588,7 @@ const hideFailureOverlay = () => {
 
 const init = () => {
   cacheElements();
+  renderProfileOptions();
   updatePhaseGuide();
   updatePhasePanels();
   syncModalNextDay();
