@@ -2768,7 +2768,6 @@ const cacheElements = () => {
   elements.statCharmCompact = document.getElementById('stat-charm-compact');
   elements.eventName = document.getElementById('event-name');
   elements.eventDescription = document.getElementById('event-description');
-  elements.eventEffects = document.getElementById('event-effects');
   elements.serviceBar = document.getElementById('service-bar');
   elements.serviceStatus = document.getElementById('service-status');
   elements.serviceProgressLabel = document.getElementById('service-progress-label');
@@ -3552,24 +3551,27 @@ const renderCommandButtons = () => {
 };
 
 const updateStockForecast = (outcome) => {
-  if (!elements.forecastStock || !elements.forecastDemand || !elements.forecastSellout || !elements.stockNote) return;
+  const hasForecastDetails =
+    elements.forecastStock && elements.forecastDemand && elements.forecastSellout && elements.stockNote;
   if (!outcome) {
-    elements.forecastStock.textContent = formatUnits(inventoryManager.units || 0);
-    elements.forecastDemand.textContent = '--';
     if (elements.hudProjectedDemand) {
       elements.hudProjectedDemand.textContent = '--';
     }
+    if (!hasForecastDetails) return;
+    elements.forecastStock.textContent = formatUnits(inventoryManager.units || 0);
+    elements.forecastDemand.textContent = '--';
     elements.forecastSellout.textContent = '--';
     elements.stockNote.textContent = 'Forecast updates after prep.';
     return;
   }
   const stock = outcome.stockOnTruck ?? inventoryManager.units ?? 0;
   const demand = outcome.projectedDemand ?? 0;
-  elements.forecastStock.textContent = formatUnits(stock);
-  elements.forecastDemand.textContent = formatUnits(demand);
   if (elements.hudProjectedDemand) {
     elements.hudProjectedDemand.textContent = formatUnits(demand);
   }
+  if (!hasForecastDetails) return;
+  elements.forecastStock.textContent = formatUnits(stock);
+  elements.forecastDemand.textContent = formatUnits(demand);
   if (outcome.selloutProgress && outcome.selloutProgress < 100) {
     elements.forecastSellout.textContent = `${Math.round(outcome.selloutProgress)}% into service`;
     elements.stockNote.textContent = 'Sellout likely - rush mode or rumor spotlights can stretch stock.';
@@ -4728,21 +4730,12 @@ const renderEventCard = (event) => {
   if (!event) {
     elements.eventName.textContent = 'Waiting for prep';
     elements.eventDescription.textContent = 'Start the day to roll a weather, hype, or critic event.';
-    elements.eventEffects.innerHTML = '';
     updateEnvironmentHints(null);
     updateEventModifiers(null);
     return;
   }
   elements.eventName.textContent = event.title;
   elements.eventDescription.textContent = event.description;
-  elements.eventEffects.innerHTML = '';
-  const effectText = describeEffects(event.effects);
-  if (effectText === 'Vibe only') return;
-  effectText.split(' · ').forEach((chunk) => {
-    const tag = document.createElement('li');
-    tag.textContent = chunk;
-    elements.eventEffects.appendChild(tag);
-  });
   updateEventModifiers(event);
   updateEnvironmentHints(event);
 };

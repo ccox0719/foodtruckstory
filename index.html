@@ -225,7 +225,6 @@
                 <span id="stat-hype">+0 hype</span>
                 <span id="stat-rating">+0 rating</span>
               </div>
-              <ul class="event-effects" id="event-effects"></ul>
             </div>
             <div class="service-hud-controls">
               <div class="price-supply-card">
@@ -255,7 +254,12 @@
                   <div class="progress-bar accent" id="service-bar"></div>
                   <span class="progress-label" id="service-progress-label">0%</span>
                 </div>
-                <p id="service-status">Prep dishes, then hit start.</p>
+                <div class="service-progress-footer">
+                  <p id="service-status">Prep dishes, then hit start.</p>
+                  <div class="service-controls">
+                    <button class="btn ghost" type="button" id="pause-day" disabled>Pause</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -268,9 +272,6 @@
           </div>
         </div>
         <div class="service-feed" id="service-feed" aria-live="polite"></div>
-        <div class="service-controls">
-          <button class="btn ghost" type="button" id="pause-day" disabled>Pause</button>
-        </div>
       </section>
 
       <section class="panel phase results-phase" id="phase-results">
