@@ -3801,8 +3801,11 @@ const startDay = () => {
 };
 
 const pickEvent = () => {
-  const index = Math.floor(Math.random() * EVENTS.length);
-  const baseEvent = EVENTS[index];
+  const dayOneExclusions = state.day <= 1 ? ['critic'] : [];
+  const eventPool = EVENTS.filter((entry) => !dayOneExclusions.includes(entry.id));
+  const pool = eventPool.length ? eventPool : EVENTS;
+  const index = Math.floor(Math.random() * pool.length);
+  const baseEvent = pool[index];
   return applyDifficultyToEvent(baseEvent);
 };
 
