@@ -1866,7 +1866,9 @@ const cacheElements = () => {
   elements.statSpeed = document.getElementById('stat-speed');
   elements.statCapacity = document.getElementById('stat-capacity');
   elements.statEfficiency = document.getElementById('stat-efficiency');
+  elements.statEfficiencyCompact = document.getElementById('stat-efficiency-compact');
   elements.statCharm = document.getElementById('stat-charm');
+  elements.statCharmCompact = document.getElementById('stat-charm-compact');
   elements.eventName = document.getElementById('event-name');
   elements.eventDescription = document.getElementById('event-description');
   elements.eventEffects = document.getElementById('event-effects');
@@ -3333,8 +3335,16 @@ const updateHUD = () => {
   }
   elements.statSpeed.textContent = `${state.truck.speed.toFixed(2)}x`;
   elements.statCapacity.textContent = `${formatUnits(getSupplyCapacityLimit())} max`;
-  elements.statEfficiency.textContent = `${state.staff.efficiency.toFixed(2)}x`;
-  elements.statCharm.textContent = `${state.staff.charm.toFixed(2)}x`;
+  const efficiencyText = `${state.staff.efficiency.toFixed(2)}x`;
+  elements.statEfficiency.textContent = efficiencyText;
+  if (elements.statEfficiencyCompact) {
+    elements.statEfficiencyCompact.textContent = efficiencyText;
+  }
+  const charmText = `${state.staff.charm.toFixed(2)}x`;
+  elements.statCharm.textContent = charmText;
+  if (elements.statCharmCompact) {
+    elements.statCharmCompact.textContent = charmText;
+  }
 };
 
 const updatePhaseGuide = () => {

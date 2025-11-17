@@ -154,8 +154,78 @@ h4 {
 
 .status-strip {
   display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.status-row {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-row-main {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.status-group {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+}
+
+.status-group-primary {
+  flex: 1 1 auto;
+}
+
+.status-group-meter {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
+.status-chip.meter.dual {
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 220px;
+}
+
+.dual-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dual-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.dual-progress-row .mini-progress {
+  flex: 1;
+}
+
+.dual-progress-row .mini-progress {
+  min-width: 120px;
+}
+
+.status-group-secondary {
+  flex: 1 1 auto;
+}
+
+.status-actions {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0 0.2rem;
 }
 
 .status-chip {
@@ -164,7 +234,7 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.45rem 0.55rem;
+  padding: 0.25rem 0.45rem;
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(4, 8, 18, 0.9);
@@ -195,8 +265,25 @@ h4 {
   font-size: 0.85rem;
 }
 
+.flow-charm-strip {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  justify-content: space-between;
+}
+
+.flow-charm-strip .mini-label {
+  font-size: 0.55rem;
+}
+
+.mini-divider {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .status-chip .mini-value {
-  font-size: clamp(1rem, 2vw, 1.15rem);
+  font-size: clamp(0.85rem, 2vw, 1.15rem);
 }
 
 .strike-chip {
@@ -318,7 +405,7 @@ h4 {
 }
 
 .mini-label {
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -395,7 +482,7 @@ h4 {
 }
 
 .mini-value {
-  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  font-size: clamp(0.85rem, 2vw, 1.25rem);
   font-family: "Share Tech Mono", monospace;
   white-space: nowrap;
 }
@@ -415,7 +502,7 @@ h4 {
 
 .mini-progress-bar {
   flex: 1;
-  height: 6px;
+  height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
   position: relative;
@@ -434,6 +521,56 @@ h4 {
 
 .mini-progress-bar.alt::after {
   background: linear-gradient(120deg, #7ed5ff, #3a92ff);
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .status-strip {
+    overflow-x: hidden;
+    gap: 0.35rem;
+    padding-bottom: 0.3rem;
+  }
+
+  .status-row {
+    justify-content: space-between;
+  }
+
+  .status-chip {
+    flex: 1 1 140px;
+    padding: 0.32rem 0.55rem;
+    gap: 0.28rem;
+  }
+
+  .flow-chip,
+  .charm-chip {
+    display: none;
+  }
+
+  .flow-charm-strip {
+    display: flex;
+    flex: 1 1 260px;
+    width: 100%;
+  }
+
+  .phase-chip {
+    order: 99;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .phase-node,
+  .status-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .phase-node-step {
+    font-size: 1rem;
+  }
 }
 
 .progress {
@@ -1014,6 +1151,46 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+
+.supply-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.supply-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.supply-details {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-height: 100px;
+}
+
+.purchase-column {
+  gap: 0.4rem;
+}
+
+.supply-cost {
+  font-family: "Share Tech Mono", monospace;
+  color: var(--accent);
+  display: block;
+  font-size: 0.95rem;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.supply-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0.4rem;
 }
 
 .supply-head {

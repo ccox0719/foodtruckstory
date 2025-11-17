@@ -20,68 +20,75 @@
 
     <section class="status-bar" aria-label="Campaign overview">
       <div class="status-strip">
-        <div class="status-chip" title="Campaign day counter">
-          <span class="mini-label">Day</span>
-          <span class="mini-value" id="hud-day">1</span>
-        </div>
-        <div class="status-chip" title="Cash on hand available for upgrades, supplies, and bribes">
-          <span class="mini-label">Bank</span>
-          <span class="mini-value" id="hud-money">$0</span>
-        </div>
-        <div class="status-chip meter" title="Hype measures crowd excitement and demand for the lineup">
-          <span class="mini-label">Hype</span>
-          <div class="mini-progress">
-            <span id="hud-hype">0</span>
-            <div class="mini-progress-bar" id="hype-bar"></div>
+        <div class="status-row status-row-main">
+          <div class="status-group status-group-primary">
+            <div class="status-chip" title="Campaign day counter">
+              <span class="mini-label">Day</span>
+              <span class="mini-value" id="hud-day">1</span>
+            </div>
+            <div class="status-chip" title="Cash on hand available for upgrades, supplies, and bribes">
+              <span class="mini-label">Bank</span>
+              <span class="mini-value" id="hud-money">$0</span>
+            </div>
+          </div>
+          <div class="status-actions">
+            <button class="status-btn ghost" type="button" id="devtools-trigger" aria-haspopup="dialog" aria-controls="devtools-modal" aria-label="Dev tools">
+              <i class="bi bi-sliders"></i>
+            </button>
+            <button class="status-btn" type="button" id="upgrades-trigger" aria-haspopup="dialog" aria-controls="upgrades-modal" aria-label="Upgrades">
+              <i class="bi bi-rocket-takeoff"></i>
+            </button>
           </div>
         </div>
-        <div class="status-chip meter" title="Reputation reflects critic trust and unlocks premium pricing">
-          <span class="mini-label">Rep</span>
-          <div class="mini-progress">
-            <span id="hud-rep">0</span>
-            <div class="mini-progress-bar alt" id="rep-bar"></div>
+        <div class="status-row status-row-secondary">
+          <div class="status-group status-group-secondary">
+            <button class="status-chip danger strike-chip" type="button" id="strike-payoff" aria-label="Pay off a strike" title="Click in prep to grease palms and clear one strike for a steep cut of your cash">
+              <span class="mini-label">Strikes</span>
+              <span class="mini-value" id="hud-strikes">0 / 3</span>
+            </button>
+            <div class="status-chip" title="Truck speed impacts ticket flow and service pace">
+              <span class="mini-label">Speed</span>
+              <span class="mini-value" id="stat-speed">1.00x</span>
+            </div>
+            <div class="status-chip" title="Capacity limits the number of guests you can serve each day">
+              <span class="mini-label">Capacity</span>
+              <span class="mini-value" id="stat-capacity">28</span>
+            </div>
+          </div>
+          <div class="status-chip meter dual" title="Hype measures crowd excitement and rep reflects critic trust">
+            <div class="dual-progress">
+              <div class="dual-progress-row">
+                <span class="mini-label">Hype</span>
+                <div class="mini-progress">
+                  <span id="hud-hype">0</span>
+                  <div class="mini-progress-bar" id="hype-bar"></div>
+                </div>
+              </div>
+              <div class="dual-progress-row">
+                <span class="mini-label">Rep</span>
+                <div class="mini-progress">
+                  <span id="hud-rep">0</span>
+                  <div class="mini-progress-bar alt" id="rep-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="status-chip flow-chip" title="Flow reflects staff efficiency modifiers from helpers and upgrades">
+            <span class="mini-label">Flow</span>
+            <span class="mini-value" id="stat-efficiency">1.00x</span>
+          </div>
+          <div class="status-chip charm-chip" title="Charm boosts guest patience and ratings">
+            <span class="mini-label">Charm</span>
+            <span class="mini-value" id="stat-charm">1.00x</span>
+          </div>
+          <div class="status-chip flow-charm-strip" aria-label="Flow and charm summary">
+            <span class="mini-label">Flow</span>
+            <span class="mini-value" id="stat-efficiency-compact">1.00x</span>
+            <span class="mini-divider" aria-hidden="true">|</span>
+            <span class="mini-label">Charm</span>
+            <span class="mini-value" id="stat-charm-compact">1.00x</span>
           </div>
         </div>
-        <button class="status-chip danger strike-chip" type="button" id="strike-payoff" aria-label="Pay off a strike" title="Click in prep to grease palms and clear one strike for a steep cut of your cash">
-          <span class="mini-label">Strikes</span>
-          <span class="mini-value" id="hud-strikes">0 / 3</span>
-        </button>
-        <div class="status-chip" title="Truck speed impacts ticket flow and service pace">
-          <span class="mini-label">Speed</span>
-          <span class="mini-value" id="stat-speed">1.00x</span>
-        </div>
-        <div class="status-chip" title="Capacity limits the number of guests you can serve each day">
-          <span class="mini-label">Capacity</span>
-          <span class="mini-value" id="stat-capacity">28</span>
-        </div>
-        <div class="status-chip" title="Flow reflects staff efficiency modifiers from helpers and upgrades">
-          <span class="mini-label">Flow</span>
-          <span class="mini-value" id="stat-efficiency">1.00x</span>
-        </div>
-        <div class="status-chip" title="Charm boosts guest patience and ratings">
-          <span class="mini-label">Charm</span>
-          <span class="mini-value" id="stat-charm">1.00x</span>
-        </div>
-        <div class="phase-chip">
-          <a class="phase-node active" data-phase-node="prep" href="#phase-prep">
-            <span class="phase-node-step"><i class="bi bi-backpack2"></i></span>
-            <span class="sr-only">Prep</span>
-          </a>
-          <a class="phase-node" data-phase-node="service" href="#phase-service">
-            <span class="phase-node-step"><i class="bi bi-joystick"></i></span>
-            <span class="sr-only">Service</span>
-          </a>
-          <a class="phase-node" data-phase-node="results" href="#phase-results">
-            <span class="phase-node-step"><i class="bi bi-stars"></i></span>
-            <span class="sr-only">Results</span>
-          </a>
-        </div>
-        <button class="status-btn" type="button" id="upgrades-trigger" aria-haspopup="dialog" aria-controls="upgrades-modal" aria-label="Upgrades">
-          <i class="bi bi-rocket-takeoff"></i>
-        </button>
-        <button class="status-btn ghost" type="button" id="devtools-trigger" aria-haspopup="dialog" aria-controls="devtools-modal" aria-label="Dev tools">
-          <i class="bi bi-sliders"></i>
-        </button>
       </div>
     </section>
 
@@ -99,17 +106,23 @@
             <div class="supply-panel">
               <div class="supply-head">
                 <p class="panel-title"><i class="bi bi-basket2"></i> Supplies</p>
-                <p class="supply-meta" id="supply-stock">Stock: 0</p>
               </div>
-              <label for="supply-input">Purchase servings</label>
-              <div class="supply-input">
-                <input type="number" id="supply-input" min="0" max="80" step="5" value="20" />
-                <span class="supply-cost" id="supply-cost">$0</span>
-              </div>
-              <p class="supply-carry" id="supply-carry">Carryover: 0 (Fresh)</p>
-              <p class="supply-risk" id="supply-risk">Risk: Low</p>
-              <div class="supply-actions">
-                <button type="button" class="btn tertiary" id="supply-discard"><i class="bi bi-trash"></i> Dump stock</button>
+              <div class="supply-grid">
+                <div class="supply-column purchase-column">
+                  <label for="supply-input">Purchase</label>
+                  <div class="supply-input">
+                    <input type="number" id="supply-input" min="0" max="80" step="5" value="20" />
+                  </div>
+                  <span class="supply-cost" id="supply-cost">$0</span>
+                </div>
+                <div class="supply-column supply-details">
+                  <p class="supply-meta supply-stock" id="supply-stock">Stock: 0</p>
+                  <p class="supply-carry" id="supply-carry">Carryover: 0 (Fresh)</p>
+                  <p class="supply-risk" id="supply-risk">Risk: Low</p>
+                  <div class="supply-actions">
+                    <button type="button" class="btn tertiary" id="supply-discard"><i class="bi bi-trash"></i> Dump stock</button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="audience-panel">
