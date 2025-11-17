@@ -127,13 +127,11 @@
             </div>
             <div class="audience-panel">
               <div class="forecast-card">
-                <p class="panel-title"><i class="bi bi-people-fill"></i> Audience</p>
+                <p class="panel-title">Audience</p>
                 <h3 id="audience-name">Market Lunch Crowd</h3>
-                <p id="audience-desc">Fast office group looking for handheld freshness.</p>
-                <p class="audience-clue" id="audience-clue">Clue: quick bites, crisp bite.</p>
-                <div class="forecast-tags">
-                  <span class="forecast-tag" id="audience-form">Grab-n-go</span>
-                  <span class="forecast-tag" id="audience-flavor">Garden chill</span>
+                <div class="audience-cues">
+                  <span class="audience-cue" id="audience-form">Glow bowls</span>
+                  <span class="audience-cue" id="audience-flavor">Smoke trails</span>
                 </div>
               </div>
             </div>
@@ -153,21 +151,12 @@
                   Flavor
                   <select id="lab-flavor"></select>
                 </label>
-                <label>
-                  Codename
-                  <input type="text" id="lab-name" placeholder="Auto from kit" />
-                </label>
               </div>
-        <div class="lab-kit-panel">
-          <p class="mini-label">Ingredient kits</p>
-          <div class="lab-kit-grid" id="lab-kit-grid"></div>
-        </div>
-        <div class="lab-preview" id="lab-preview">
+              <div class="lab-preview" id="lab-preview">
                 <p>Select a format + ingredient kit to preview stats.</p>
               </div>
               <div class="lab-actions">
                 <button class="btn primary" type="button" id="lab-create" disabled>Craft combo</button>
-                <button class="btn ghost" type="button" id="lab-reset">Clear library</button>
               </div>
               <p class="lab-tip">Risk badges flag reliable staples vs. high-risk experiments. Creative kits can spike hype but may anger the line.</p>
             </div>
@@ -185,6 +174,7 @@
             </footer>
             <div class="prep-actions">
               <button class="btn primary" type="button" id="start-day">Start day</button>
+              <button class="btn ghost" type="button" id="delete-selected">Delete selected</button>
             </div>
           </div>
         </div>
@@ -223,20 +213,32 @@
             </div>
           </div>
           <div class="service-stats">
-            <div>
-              <span class="label" aria-label="Served"><i class="bi bi-people"></i></span>
+            <div class="service-stat service-served">
+              <div class="stat-meta">
+                <span class="label" aria-label="Served"><i class="bi bi-people"></i></span>
+                <span class="stat-name">Served</span>
+              </div>
               <span class="value" id="stat-served">0</span>
             </div>
-            <div>
-              <span class="label" aria-label="Angry"><i class="bi bi-emoji-angry"></i></span>
+            <div class="service-stat service-angry">
+              <div class="stat-meta">
+                <span class="label" aria-label="Angry"><i class="bi bi-emoji-angry"></i></span>
+                <span class="stat-name">Angry</span>
+              </div>
               <span class="value" id="stat-angry">0</span>
             </div>
-            <div>
-              <span class="label" aria-label="Average wait"><i class="bi bi-stopwatch"></i></span>
+            <div class="service-stat service-wait">
+              <div class="stat-meta">
+                <span class="label" aria-label="Average wait"><i class="bi bi-stopwatch"></i></span>
+                <span class="stat-name">Avg wait</span>
+              </div>
               <span class="value" id="stat-wait">0 min</span>
             </div>
-            <div>
-              <span class="label" aria-label="Revenue"><i class="bi bi-cash-stack"></i></span>
+            <div class="service-stat service-revenue">
+              <div class="stat-meta">
+                <span class="label" aria-label="Revenue"><i class="bi bi-cash-stack"></i></span>
+                <span class="stat-name">Revenue</span>
+              </div>
               <span class="value" id="stat-revenue">$0</span>
             </div>
           </div>

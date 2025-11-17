@@ -1881,6 +1881,7 @@ const cacheElements = () => {
   elements.pauseButton = document.getElementById('pause-day');
   elements.nextDay = document.getElementById('next-day');
   elements.resetButton = document.getElementById('reset-campaign');
+  elements.deleteSelectedButton = document.getElementById('delete-selected');
   elements.devtoolsTrigger = document.getElementById('devtools-trigger');
   elements.devtoolsModal = document.getElementById('devtools-modal');
   elements.devtoolsClose = document.getElementById('devtools-close');
@@ -1914,12 +1915,9 @@ const cacheElements = () => {
   elements.failReset = document.getElementById('fail-reset');
   elements.labFlavor = document.getElementById('lab-flavor');
   elements.labForm = document.getElementById('lab-form');
-  elements.labName = document.getElementById('lab-name');
   elements.labPreview = document.getElementById('lab-preview');
   elements.labStatus = document.getElementById('lab-status');
   elements.labCreate = document.getElementById('lab-create');
-  elements.labReset = document.getElementById('lab-reset');
-  elements.labKitGrid = document.getElementById('lab-kit-grid');
   elements.phaseTip = document.getElementById('phase-tip');
   elements.phaseNodes = document.querySelectorAll('[data-phase-node]');
   elements.profileModal = document.getElementById('profile-modal');
@@ -2436,87 +2434,24 @@ const renderLabSelects = () => {
 };
 
 const renderLabKitGrid = () => {
-  if (!elements.labKitGrid) return;
+  if (!elements.labForm || !elements.labFlavor) return;
   const formValue = elements.labForm?.value || FORM_OPTIONS[0].id;
   const flavorValue = elements.labFlavor?.value || FLAVOR_OPTIONS[0].id;
   state.labSelection.form = formValue;
   state.labSelection.flavor = flavorValue;
+
   const kits = INGREDIENT_BLUEPRINTS.filter((bp) => bp.form === formValue && bp.flavor === flavorValue);
-  elements.labKitGrid.innerHTML = '';
   if (!kits.length) {
-    const empty = document.createElement('p');
-    empty.className = 'lab-empty';
-    empty.textContent = 'No ingredient kits map to this format + flavor yet.';
-    elements.labKitGrid.appendChild(empty);
     state.labSelection.blueprintId = null;
-    highlightLabSelection();
     updateLabPreview();
     updateLabStatus('Try another flavor or format to unlock different kits.');
-    if (elements.labCreate) elements.labCreate.disabled = true;
     return;
   }
-  kits.forEach((kit) => {
-    const blueprintId = getBlueprintId(kit);
-    const card = document.createElement('article');
-    card.className = 'lab-kit-card';
-    card.dataset.blueprintId = blueprintId;
-    const dishPreview = buildDishFromBlueprint(kit, { name: kit.name });
-    const riskBadge = renderRiskBadge(dishPreview);
-    const tierLabel = dishPreview.baseTier ? `Tier ${dishPreview.baseTier}` : 'Tier --';
-    const scoreLabel = `${Math.round(dishPreview.baseScore)} pts`;
-    card.innerHTML = `
-      <div class="lab-kit-head">
-        <div>
-          <strong>${kit.name}</strong>
-          <p class="lab-kit-sub">${kit.baseIngredients}</p>
-        </div>
-        <div class="lab-kit-tags">
-          ${riskBadge}
-          <span class="dish-trend">Trend ${kit.trendTier}/5</span>
-          <span class="lab-kit-tier">${tierLabel}</span>
-        </div>
-      </div>
-      <p class="lab-kit-detail">Signature: ${kit.signatureIngredients}</p>
-      <p class="lab-kit-score">${scoreLabel}</p>
-      <div class="lab-kit-actions">
-        <button type="button" class="btn tertiary lab-kit-craft">Quick craft</button>
-      </div>
-    `;
-    card.addEventListener('click', (event) => {
-      if (event.target.closest('.lab-kit-craft')) {
-        selectLabBlueprint(blueprintId);
-        craftBlueprintById(blueprintId, { quick: true });
-        event.stopPropagation();
-        return;
-      }
-      selectLabBlueprint(blueprintId);
-    });
-    elements.labKitGrid.appendChild(card);
-  });
-  const stillValid = kits.some((kit) => getBlueprintId(kit) === state.labSelection.blueprintId);
-  if (!stillValid) {
-    state.labSelection.blueprintId = getBlueprintId(kits[0]);
-  }
-  highlightLabSelection();
-  updateLabPreview();
-  updateLabStatus('Select a kit to preview synergy or quick craft multiples.');
-};
 
-const highlightLabSelection = () => {
-  if (!elements.labKitGrid) return;
-  const current = state.labSelection?.blueprintId;
-  elements.labKitGrid.querySelectorAll('.lab-kit-card').forEach((card) => {
-    card.classList.toggle('selected', current && card.dataset.blueprintId === current);
-  });
-  if (elements.labCreate) {
-    elements.labCreate.disabled = !current;
-  }
-};
-
-const selectLabBlueprint = (blueprintId) => {
-  state.labSelection.blueprintId = blueprintId;
-  highlightLabSelection();
+  const preferredKit = kits.find((kit) => getBlueprintId(kit) === state.labSelection.blueprintId) || kits[0];
+  state.labSelection.blueprintId = getBlueprintId(preferredKit);
   updateLabPreview();
+  updateLabStatus('Select a kit to preview synergy.');
 };
 
 const getLabBlueprint = () => {
@@ -2529,15 +2464,11 @@ const updateLabPreview = () => {
   const blueprint = getLabBlueprint();
   if (!blueprint) {
     elements.labPreview.innerHTML = '<p>Select a format + ingredient kit to preview stats.</p>';
-    if (elements.labName) elements.labName.placeholder = 'Auto from kit';
     if (elements.labCreate) elements.labCreate.disabled = true;
     updateLabStatus('Pick a kit to see how it plays.');
     return;
   }
-  if (elements.labName && !elements.labName.value.trim()) {
-    elements.labName.placeholder = blueprint.name;
-  }
-  const previewDish = buildDishFromBlueprint(blueprint, { name: elements.labName?.value });
+  const previewDish = buildDishFromBlueprint(blueprint);
   const riskBadge = renderRiskBadge(previewDish);
   elements.labPreview.innerHTML = `
     <div class="lab-preview-card">
@@ -2583,9 +2514,8 @@ const craftBlueprintById = (blueprintId, { quick = false } = {}) => {
     return false;
   }
   state.craftedCounter += 1;
-  const manualName = !quick ? elements.labName?.value.trim() : '';
   const variant = createRecipeVariant();
-  const dishName = manualName || `${variant.label} ${blueprint.name}`;
+  const dishName = `${variant.label} ${blueprint.name}`;
   const dish = buildDishFromBlueprint(blueprint, {
     name: dishName,
     keySuffix: state.craftedCounter,
@@ -2594,9 +2524,6 @@ const craftBlueprintById = (blueprintId, { quick = false } = {}) => {
   state.lastCraftDay = state.day;
   state.craftedDishes.push(dish);
   refreshDishLibrary({ showHint: true });
-  if (!quick && elements.labName) {
-    elements.labName.value = '';
-  }
   updateLabPreview();
   updateLabStatus(quick ? `Spawned ${dish.name}. Keep experimenting!` : 'Added to your library. Tap it in prep to slot the lineup.');
   return true;
@@ -2610,19 +2537,16 @@ const craftCurrentBlueprint = () => {
   craftBlueprintById(state.labSelection.blueprintId);
 };
 
-const clearRecipeLibrary = () => {
-  if (!state.craftedDishes.length) {
-    updateLabStatus('Library already empty.');
+const deleteSelectedRecipes = () => {
+  if (!state.selectedDishes.length) {
+    setPrepMessage('Select a recipe before deleting.');
     return;
   }
-  const confirmed = typeof window === 'undefined' ? true : window.confirm('Clear all crafted combos? This cannot be undone.');
-  if (!confirmed) return;
-  state.craftedDishes = [];
+  const toRemove = new Set(state.selectedDishes);
+  state.craftedDishes = state.craftedDishes.filter((dish) => !toRemove.has(dish.id));
   state.selectedDishes = [];
-  state.craftedCounter = 0;
   refreshDishLibrary({ showHint: true });
-  updateLabPreview();
-  updateLabStatus('Library cleared. Craft something new in the grid.');
+  updateLabStatus('Selected recipes removed.');
 };
 
 const retireCraftedDish = (dishId) => {
@@ -3580,24 +3504,19 @@ const attachEvents = () => {
 
   if (elements.labForm) {
     elements.labForm.addEventListener('change', () => {
-      if (elements.labName) elements.labName.value = '';
       renderLabKitGrid();
     });
   }
   if (elements.labFlavor) {
     elements.labFlavor.addEventListener('change', () => {
-      if (elements.labName) elements.labName.value = '';
       renderLabKitGrid();
     });
-  }
-  if (elements.labName) {
-    elements.labName.addEventListener('input', updateLabPreview);
   }
   if (elements.labCreate) {
     elements.labCreate.addEventListener('click', craftCurrentBlueprint);
   }
-  if (elements.labReset) {
-    elements.labReset.addEventListener('click', clearRecipeLibrary);
+  if (elements.deleteSelectedButton) {
+    elements.deleteSelectedButton.addEventListener('click', deleteSelectedRecipes);
   }
   if (elements.menuCodex) {
     elements.menuCodex.addEventListener('click', handleMenuCodexAction);
