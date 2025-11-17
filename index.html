@@ -192,7 +192,6 @@
               <h3 id="event-name">Waiting for prep</h3>
             </div>
             <p id="event-description">Start the day to roll weather, critic, or rush events.</p>
-            <ul class="event-effects" id="event-effects"></ul>
           </div>
           <div class="service-hints" id="service-hints" aria-live="polite">
             <div class="hint-head">
@@ -202,77 +201,71 @@
             <ul class="hint-list" id="hint-list"></ul>
           </div>
         </div>
-        <div class="service-price-row">
-          <div class="price-panel">
-            <p class="panel-title"><i class="bi bi-tags"></i> Live price point</p>
-            <div class="price-options">
-              <label><input type="radio" name="price-point" value="street" checked /><span>Street</span></label>
-              <label><input type="radio" name="price-point" value="market" /><span>Market</span></label>
-              <label><input type="radio" name="price-point" value="premium" /><span>Premium</span></label>
-              <label><input type="radio" name="price-point" value="vip" /><span>VIP</span></label>
+        <div class="service-hud-card">
+          <div class="service-hud-grid">
+            <div class="quick-stats-table">
+              <div class="quick-stat">
+                <span>Served</span>
+                <strong id="stat-served">0</strong>
+              </div>
+              <div class="quick-stat">
+                <span>Angry</span>
+                <strong id="stat-angry">0</strong>
+              </div>
+              <div class="quick-stat">
+                <span>Avg wait</span>
+                <strong id="stat-wait">0 min</strong>
+              </div>
+              <div class="quick-stat">
+                <span>Revenue</span>
+                <strong id="stat-revenue">$0</strong>
+              </div>
+              <div class="event-modifiers">
+                <span id="stat-turnout">+0% turnout</span>
+                <span id="stat-hype">+0 hype</span>
+                <span id="stat-rating">+0 rating</span>
+              </div>
+              <ul class="event-effects" id="event-effects"></ul>
             </div>
-          </div>
-          <div class="service-stats">
-            <div class="service-stat service-served">
-              <div class="stat-meta">
-                <span class="label" aria-label="Served"><i class="bi bi-people"></i></span>
-                <span class="stat-name">Served</span>
+            <div class="service-hud-controls">
+              <div class="price-supply-card">
+                <div class="price-column">
+                  <p class="panel-title compact"><i class="bi bi-tags"></i> Live price point</p>
+                  <div class="price-options compact">
+                    <label><input type="radio" name="price-point" value="street" checked /><span>Street</span></label>
+                    <label><input type="radio" name="price-point" value="market" /><span>Market</span></label>
+                    <label><input type="radio" name="price-point" value="premium" /><span>Premium</span></label>
+                    <label><input type="radio" name="price-point" value="vip" /><span>VIP</span></label>
+                  </div>
+                </div>
+                <div class="supply-demand-card">
+                  <div class="supply-column">
+                    <span class="hud-label">Supply</span>
+                    <span class="hud-value" id="hud-on-truck">0 serv</span>
+                  </div>
+                  <div class="divider" aria-hidden="true"></div>
+                  <div class="supply-column">
+                    <span class="hud-label">Demand</span>
+                    <span class="hud-value" id="hud-projected-demand">0 serv</span>
+                  </div>
+                </div>
               </div>
-              <span class="value" id="stat-served">0</span>
-            </div>
-            <div class="service-stat service-angry">
-              <div class="stat-meta">
-                <span class="label" aria-label="Angry"><i class="bi bi-emoji-angry"></i></span>
-                <span class="stat-name">Angry</span>
-              </div>
-              <span class="value" id="stat-angry">0</span>
-            </div>
-            <div class="service-stat service-wait">
-              <div class="stat-meta">
-                <span class="label" aria-label="Average wait"><i class="bi bi-stopwatch"></i></span>
-                <span class="stat-name">Avg wait</span>
-              </div>
-              <span class="value" id="stat-wait">0 min</span>
-            </div>
-            <div class="service-stat service-revenue">
-              <div class="stat-meta">
-                <span class="label" aria-label="Revenue"><i class="bi bi-cash-stack"></i></span>
-                <span class="stat-name">Revenue</span>
-              </div>
-              <span class="value" id="stat-revenue">$0</span>
-            </div>
-          </div>
-          <div class="stock-forecast condensed">
-            <p class="panel-title"><i class="bi bi-box-seam"></i> Stock forecast</p>
-            <div class="stock-grid">
-              <div>
-                <span class="label">On truck</span>
-                <span class="value" id="forecast-stock">0 serv</span>
-              </div>
-              <div>
-                <span class="label">Projected demand</span>
-                <span class="value" id="forecast-demand">0 serv</span>
-              </div>
-              <div>
-                <span class="label">Sellout</span>
-                <span class="value" id="forecast-sellout">--</span>
+              <div class="service-progress compact">
+                <div class="progress">
+                  <div class="progress-bar accent" id="service-bar"></div>
+                  <span class="progress-label" id="service-progress-label">0%</span>
+                </div>
+                <p id="service-status">Prep dishes, then hit start.</p>
               </div>
             </div>
-            <p class="stock-note" id="stock-note">Forecast updates after prep.</p>
           </div>
         </div>
-        <div class="service-control-grid">
+        <div class="service-actions-row">
           <div class="service-commands">
             <p class="panel-title"><i class="bi bi-controller"></i> Commands</p>
             <div class="command-buttons" id="command-grid"></div>
             <p class="command-note" id="command-note">Commands unlock mid-service. Cooldowns + targeting are shown below each label.</p>
           </div>
-        </div>
-        <div class="service-progress">
-          <div class="progress">
-            <div class="progress-bar accent" id="service-bar"></div>
-          </div>
-          <p id="service-status">Prep dishes, then hit start.</p>
         </div>
         <div class="service-feed" id="service-feed" aria-live="polite"></div>
         <div class="service-controls">

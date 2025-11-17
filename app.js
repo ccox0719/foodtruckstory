@@ -865,6 +865,10 @@ const applyProfileRiskAndReward = (outcome) => {
   }
 };
 
+function updateComboNote() {
+  // placeholder for future combo-tip UI; currently does nothing
+}
+
 const syncProfileSelectionUI = () => {
   enforceSupplyCapacity();
   if (elements && Object.keys(elements).length) {
@@ -2767,6 +2771,12 @@ const cacheElements = () => {
   elements.eventEffects = document.getElementById('event-effects');
   elements.serviceBar = document.getElementById('service-bar');
   elements.serviceStatus = document.getElementById('service-status');
+  elements.serviceProgressLabel = document.getElementById('service-progress-label');
+  elements.statTurnout = document.getElementById('stat-turnout');
+  elements.statHype = document.getElementById('stat-hype');
+  elements.statRating = document.getElementById('stat-rating');
+  elements.hudOnTruck = document.getElementById('hud-on-truck');
+  elements.hudProjectedDemand = document.getElementById('hud-projected-demand');
   elements.serviceFeed = document.getElementById('service-feed');
   elements.serviceHints = document.getElementById('service-hints');
   elements.hintList = document.getElementById('hint-list');
@@ -3546,6 +3556,9 @@ const updateStockForecast = (outcome) => {
   if (!outcome) {
     elements.forecastStock.textContent = formatUnits(inventoryManager.units || 0);
     elements.forecastDemand.textContent = '--';
+    if (elements.hudProjectedDemand) {
+      elements.hudProjectedDemand.textContent = '--';
+    }
     elements.forecastSellout.textContent = '--';
     elements.stockNote.textContent = 'Forecast updates after prep.';
     return;
@@ -3554,6 +3567,9 @@ const updateStockForecast = (outcome) => {
   const demand = outcome.projectedDemand ?? 0;
   elements.forecastStock.textContent = formatUnits(stock);
   elements.forecastDemand.textContent = formatUnits(demand);
+  if (elements.hudProjectedDemand) {
+    elements.hudProjectedDemand.textContent = formatUnits(demand);
+  }
   if (outcome.selloutProgress && outcome.selloutProgress < 100) {
     elements.forecastSellout.textContent = `${Math.round(outcome.selloutProgress)}% into service`;
     elements.stockNote.textContent = 'Sellout likely - rush mode or rumor spotlights can stretch stock.';
@@ -4301,6 +4317,9 @@ const updateSupplyUI = () => {
     const capacity = getSupplyCapacityLimit();
     elements.supplyStock.textContent = `Stock: ${formatUnits(inventoryManager.units)} / ${formatUnits(capacity)}`;
   }
+  if (elements.hudOnTruck) {
+    elements.hudOnTruck.textContent = formatUnits(inventoryManager.units);
+  }
   if (elements.supplyCarry) {
     const age = inventoryManager.age;
     const units = inventoryManager.units;
@@ -4585,6 +4604,9 @@ const advanceToNextDay = () => {
 
 const resetServiceView = () => {
   elements.serviceBar.style.width = '0%';
+  if (elements.serviceProgressLabel) {
+    elements.serviceProgressLabel.textContent = '0%';
+  }
   elements.serviceStatus.textContent = 'Prep dishes, then hit start.';
   elements.serviceFeed.innerHTML = '';
   updateServiceStats({ served: 0, angry: 0, wait: 0, revenue: 0 });
@@ -4708,6 +4730,7 @@ const renderEventCard = (event) => {
     elements.eventDescription.textContent = 'Start the day to roll a weather, hype, or critic event.';
     elements.eventEffects.innerHTML = '';
     updateEnvironmentHints(null);
+    updateEventModifiers(null);
     return;
   }
   elements.eventName.textContent = event.title;
@@ -4720,7 +4743,23 @@ const renderEventCard = (event) => {
     tag.textContent = chunk;
     elements.eventEffects.appendChild(tag);
   });
+  updateEventModifiers(event);
   updateEnvironmentHints(event);
+};
+
+const updateEventModifiers = (event) => {
+  const turnout = event?.effects?.turnout ?? 0;
+  const hype = event?.effects?.hype ?? 0;
+  const rating = event?.effects?.rating ?? 0;
+  if (elements.statTurnout) {
+    elements.statTurnout.textContent = `${turnout >= 0 ? '+' : ''}${Math.round(turnout * 100)}% turnout`;
+  }
+  if (elements.statHype) {
+    elements.statHype.textContent = `${hype >= 0 ? '+' : ''}${Math.round(hype)} hype`;
+  }
+  if (elements.statRating) {
+    elements.statRating.textContent = `${rating >= 0 ? '+' : ''}${Math.round(rating)} rating`;
+  }
 };
 
 const prepareSuppliesForDay = () => {
@@ -4968,6 +5007,9 @@ const runServiceSimulation = (outcome) => {
   updateCommandButtons();
   updatePauseButton();
   elements.serviceBar.style.width = '0%';
+  if (elements.serviceProgressLabel) {
+    elements.serviceProgressLabel.textContent = '0%';
+  }
   elements.serviceStatus.textContent = 'Tickets in queue. Watch the line.';
   logServiceMessage(`Event: ${outcome.event.title}`);
   scheduleServiceTick();
@@ -5288,6 +5330,9 @@ const serviceTick = () => {
   state.serviceProgress = progress;
   state.currentProgress = progress;
   elements.serviceBar.style.width = `${progress}%`;
+  if (elements.serviceProgressLabel) {
+    elements.serviceProgressLabel.textContent = `${Math.round(progress)}%`;
+  }
   updateLiveStats();
   if (!state.serviceMidpointCalled && progress >= 50) {
     logServiceMessage('Halfway mark. Keep pace steady.');
