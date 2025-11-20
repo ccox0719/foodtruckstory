@@ -1,18 +1,6 @@
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-const computeCarryoverAngerPenalty = (inventoryState, upgradeBonuses) => {
-  const units = inventoryState?.units || 0;
-  if (units <= 0) return 0;
-  const age = Math.max(0, inventoryState.age || 0);
-  const agePenalty = Math.min(age * 0.08, 0.35);
-  const upgradePenalty = (upgradeBonuses?.old_stock_risk_add || 0) / 100;
-  return Math.min(agePenalty + upgradePenalty, 0.5);
-};
-
-const getCarryoverAngerMultiplier = (inventoryState, upgradeBonuses) =>
-  clamp(1 + computeCarryoverAngerPenalty(inventoryState, upgradeBonuses), 1, 2.5);
-
 const BASE_TRUCK_STATS = Object.freeze({ speed: 1, capacity: 28 });
 const BASE_STAFF_STATS = Object.freeze({ efficiency: 1, charm: 1 });
 
@@ -22,27 +10,6 @@ const createUpgradeBonusState = () => ({
   suppliesCostPct: 0,
   servingsCapacityAdd: 0,
   hypeRandomRange: null,
-  variantChanceBonus: 0,
-  minRecipeBonusStats: 0,
-  dangerPercentDelta: 0,
-  leastPopularItemDemandBonus: 0,
-  threeItemMenuRatingBonus: 0,
-  threeItemMenuHypeBonus: 0,
-  synergyEffectMultiplier: 1,
-  smokeSynergyMultiplier: 1,
-  freshDrinkSynergyMultiplier: 1,
-  tropicalDrinkSynergyMultiplier: 1,
-  command_rallyStaff_flowMultiplier: 0,
-  command_rallyStaff_durationTicks: 0,
-  command_rallyStaff_cooldownTicks: 0,
-  command_featureDish_demandMultiplier: 0,
-  command_featureDish_durationTicks: 0,
-  command_featureDish_cooldownDays: 0,
-  command_lunchRushFocus_lineLossMultiplier: 0,
-  command_lunchRushFocus_durationTicks: 0,
-  command_lunchRushFocus_cooldownTicks: 0,
-  command_restock_units: 0,
-  command_restock_fullService: false,
 });
 
 const INGREDIENT_BLUEPRINTS = [
@@ -425,29 +392,11 @@ const createRecipeVariant = () => {
     popularityDelta: randomVariantDelta(0.22),
     marginDelta: randomVariantDelta(0.32),
   };
-  const variantChanceBonus = state.upgradeBonuses?.variantChanceBonus || 0;
-  if (variantChanceBonus) {
-    adjustments.popularityDelta += variantChanceBonus * 0.08;
-    adjustments.prepSpeedDelta += variantChanceBonus * 0.06;
-    adjustments.marginDelta += variantChanceBonus * 0.04;
-  }
-  const computeVariantScoreDelta = () =>
-    Math.round(
-      adjustments.popularityDelta * 45
-        + adjustments.prepSpeedDelta * 35
-        + adjustments.marginDelta * 20,
-    );
-  let variantScoreDelta = computeVariantScoreDelta();
-  const minBonus = state.upgradeBonuses?.minRecipeBonusStats || 0;
-  if (minBonus > 0 && variantScoreDelta < minBonus) {
-    const boostNeeded = minBonus - variantScoreDelta;
-    const share = boostNeeded / 3;
-    adjustments.popularityDelta += share / 45;
-    adjustments.prepSpeedDelta += share / 35;
-    adjustments.marginDelta += share / 20;
-    variantScoreDelta = computeVariantScoreDelta();
-  }
-  const scoreDelta = variantScoreDelta;
+  const scoreDelta = Math.round(
+    adjustments.popularityDelta * 45
+      + adjustments.prepSpeedDelta * 35
+      + adjustments.marginDelta * 20,
+  );
   return {
     label,
     adjustments,
@@ -680,7 +629,7 @@ const PROFILE_PRESETS = [
     id: 'bootstrapped_cart',
     name: 'Bootstrapped Cart',
     description: 'No debt, small cart, slower start but very forgiving.',
-    startingRep: 12,
+    startingRep: 6,
     startingHype: 4,
     startingBank: 100,
     startingLoan: 0,
@@ -694,7 +643,7 @@ const PROFILE_PRESETS = [
     id: 'family_truck',
     name: 'Family Truck',
     description: 'Steady starter truck with a modest community reputation.',
-    startingRep: 16,
+    startingRep: 10,
     startingHype: 8,
     startingBank: 250,
     startingLoan: 800,
@@ -708,7 +657,7 @@ const PROFILE_PRESETS = [
     id: 'festival_regular',
     name: 'Festival Regular',
     description: 'Bigger rig, built for crowds, but carrying real debt.',
-    startingRep: 20,
+    startingRep: 14,
     startingHype: 12,
     startingBank: 400,
     startingLoan: 1200,
@@ -722,7 +671,7 @@ const PROFILE_PRESETS = [
     id: 'high_roller_launch',
     name: 'High-Roller Launch',
     description: 'Backer-funded launch with serious expectations.',
-    startingRep: 22,
+    startingRep: 18,
     startingHype: 16,
     startingBank: 600,
     startingLoan: 1800,
@@ -865,10 +814,6 @@ const applyProfileRiskAndReward = (outcome) => {
   }
 };
 
-function updateComboNote() {
-  // placeholder for future combo-tip UI; currently does nothing
-}
-
 const syncProfileSelectionUI = () => {
   enforceSupplyCapacity();
   if (elements && Object.keys(elements).length) {
@@ -956,25 +901,6 @@ const LINEUP_SYNERGIES = [
       const prepTier = Number(drink.prepTier ?? drink.tiers?.prep ?? 3);
       if (costTier <= 2 && prepTier <= 2) {
         return { demandMod: 0.08, ratingMod: 0, hypeMod: 2 };
-      }
-      return null;
-    },
-  },
-  {
-    id: 'contrast-pairing',
-    label: 'Contrast pairing',
-    description: 'Smoky main with a crisp, refreshing drink.',
-    check(dishes) {
-      if (dishes.length < 2) return null;
-      const hasSmokyMain = dishes.some(
-        (dish) => dish.form !== 'Drink' && dish.flavor === 'Smoke',
-      );
-      const hasBrightDrink = dishes.some(
-        (dish) =>
-          dish.form === 'Drink' && (dish.flavor === 'Fresh' || dish.flavor === 'Tropical'),
-      );
-      if (hasSmokyMain && hasBrightDrink) {
-        return { demandMod: 0.1, ratingMod: 2, hypeMod: 3 };
       }
       return null;
     },
@@ -1091,15 +1017,15 @@ const EVENT_CONTEXT_TAGS = {
   'rush-hour': ['officeLunch'],
 };
 
-const DANGER_CONTROL_STORIES = [
-  'A city fixer slides over a file: "{amount} and the inspectors forget what they saw."',
-  'Your cousin in the stalls texts, "{amount} for a fresh slate—just keep the inspectors talking somewhere else."',
-  'You tip the night blogger {amount} and their feed spins the line as "working overtime," not a disaster.',
-  'A sly helper accepts {amount} to grease the gears, giving you a cooler inbox and calmer crew.',
+const STRIKE_BRIBE_STORIES = [
+  'A health inspector slides a file across the counter: "{amount} for a fresh slate, and this paperwork never existed."',
+  'Your fixer cousin texts: "{amount} buys a round of bao for the committee and erases one strike."',
+  'A neighborhood blogger whispers, "Grease the hype crew with {amount} and those angry posts disappear."',
+  'A city clerk winks: "{amount} keeps the complaint line mysteriously busy elsewhere tonight."',
 ];
 
-const formatDangerControlStory = (amount) => {
-  const template = DANGER_CONTROL_STORIES[Math.floor(Math.random() * DANGER_CONTROL_STORIES.length)];
+const formatStrikeBribeStory = (amount) => {
+  const template = STRIKE_BRIBE_STORIES[Math.floor(Math.random() * STRIKE_BRIBE_STORIES.length)];
   return template.replace('{amount}', currency(amount));
 };
 
@@ -1110,10 +1036,13 @@ const SUPPLY_COST_PER_UNIT = 4;
 const SUPPLY_MAX_UNITS = 80;
 const getSupplyCapacityLimitFromState = (stateRef) => {
   const truckCapacity = Number(stateRef?.truck?.capacity);
-  if (!Number.isNaN(truckCapacity) && truckCapacity > 0) {
-    return Math.max(1, Math.round(truckCapacity));
-  }
-  return SUPPLY_MAX_UNITS;
+  const baseCapacity =
+    !Number.isNaN(truckCapacity) && truckCapacity > 0
+      ? Math.max(1, Math.round(truckCapacity))
+      : SUPPLY_MAX_UNITS;
+  const bonusServings = Number(stateRef?.upgradeBonuses?.servingsCapacityAdd || 0);
+  const bonus = Number.isFinite(bonusServings) ? Math.max(0, Math.round(bonusServings)) : 0;
+  return baseCapacity + bonus;
 };
 
 class InventoryManager {
@@ -1172,17 +1101,13 @@ class InventoryManager {
     return { used: canServe, shortfall, leftover };
   }
 
-  applyOutcome(outcome, { adjustAnger = true, angerMultiplier } = {}) {
+  applyOutcome(outcome, { adjustAnger = true, angerMultiplier = 1 } = {}) {
     if (!outcome) return null;
     const stock = outcome.stockOnTruck ?? outcome.supplyBefore ?? this.units;
     const { canServe, shortfall, leftover } = this.forecast(outcome.served, stock);
     if (shortfall > 0) {
       if (adjustAnger) {
-        const effectiveMultiplier =
-          typeof angerMultiplier === 'number'
-            ? angerMultiplier
-            : getCarryoverAngerMultiplier(this.state.inventory, this.state.upgradeBonuses);
-        const penalty = Math.max(1, Math.round(shortfall * effectiveMultiplier));
+        const penalty = Math.max(1, Math.round(shortfall * angerMultiplier));
         outcome.angry = Math.max((outcome.angry || 0) + penalty, 0);
       }
       outcome.served = canServe;
@@ -1265,34 +1190,6 @@ const SERVICE_COMMANDS = {
     cooldown: 3,
     scope: 'tropical',
   },
-  restockSupply: {
-    id: 'restockSupply',
-    label: 'Supply Grab',
-    description: 'Pull extra stock mid-service when chaos drains the truck.',
-    cooldown: 3,
-    requiredUpgrade: 'logistics-restock-1',
-  },
-  rallyStaff: {
-    id: 'rallyStaff',
-    label: 'Rally Staff',
-    description: 'Flow boost for rushes once the line stacks.',
-    cooldown: 2,
-    requiredUpgrade: 'command-rally-staff',
-  },
-  featureDish: {
-    id: 'featureDish',
-    label: 'Feature Dish',
-    description: 'Spotlight one dish to spike demand today.',
-    cooldown: 1,
-    requiredUpgrade: 'command-feature-dish',
-  },
-  lunchRushFocus: {
-    id: 'lunchRushFocus',
-    label: 'Lunch Rush Focus',
-    description: 'Keep mid-day guests from walking away.',
-    cooldown: 2,
-    requiredUpgrade: 'command-lunch-focus',
-  },
 };
 
 const UPGRADE_DECK = [
@@ -1323,6 +1220,31 @@ const UPGRADE_DECK = [
     description: 'Open a second window to handle more guests during rushes.',
   },
   {
+    id: 'truck_capacity_rack',
+    category: 'truck',
+    name: 'Modular Capacity Rack',
+    cost: 1000,
+    upkeep: 3,
+    effects: {
+      capacity_add: 5,
+      servings_capacity_add: 8,
+    },
+    unlock_requirements: ['truck_second_window'],
+    description: 'Modular shelving keeps extra servings close and lets more guests hit the window.',
+  },
+  {
+    id: 'truck_cargo_hold',
+    category: 'truck',
+    name: 'Reinforced Cargo Hold',
+    cost: 1700,
+    upkeep: 5,
+    effects: {
+      capacity_add: 9,
+    },
+    unlock_requirements: ['truck_capacity_rack'],
+    description: 'Reinforced cargo space lets you carry more servings and handle demand spikes.',
+  },
+  {
     id: 'truck_hotbox',
     category: 'truck',
     name: 'Insulated Hot Hold Box',
@@ -1347,19 +1269,6 @@ const UPGRADE_DECK = [
     },
     unlock_requirements: ['truck_hotbox'],
     description: 'Powerful airflow improves cooking performance and kitchen comfort.',
-  },
-  {
-    id: 'truck_overdrive',
-    category: 'truck',
-    name: 'Turbocharged Axles',
-    cost: 1500,
-    upkeep: 8,
-    effects: {
-      speed_mult: 1.12,
-      angry_reduction_pct: 5,
-    },
-    unlock_requirements: ['truck_vent_system'],
-    description: 'Reinforced axles keep the line moving and soothe rising anger during rushes.',
   },
   {
     id: 'equip_griddle_plate',
@@ -1410,19 +1319,6 @@ const UPGRADE_DECK = [
     },
     unlock_requirements: ['equip_double_rice'],
     description: 'Keeps food hot and reduces line frustration during rushes.',
-  },
-  {
-    id: 'equip_express_line',
-    category: 'equipment',
-    name: 'Express Line Kit',
-    cost: 820,
-    upkeep: 4,
-    effects: {
-      cook_speed_pct: 10,
-      servings_capacity_add: 6,
-    },
-    unlock_requirements: ['equip_steam_well'],
-    description: 'A dedicated fast lane that keeps prep pressure low while adding plate capacity.',
   },
   {
     id: 'equip_cold_line',
@@ -1509,19 +1405,6 @@ const UPGRADE_DECK = [
     },
     unlock_requirements: ['brand_signage'],
     description: 'Social media buzz adds small random hype after service.',
-  },
-  {
-    id: 'brand_field_teams',
-    category: 'brand',
-    name: 'Field Marketing Crew',
-    cost: 750,
-    upkeep: 4,
-    effects: {
-      hype_daily_bonus: 2,
-      repeat_revenue_pct: 4,
-    },
-    unlock_requirements: ['brand_social'],
-    description: 'Deploy teams to keep hype on the streets and draw loyal fans back.',
   },
   {
     id: 'brand_smoker',
@@ -1612,356 +1495,6 @@ const UPGRADE_DECK = [
     unlock_requirements: [],
     description: 'Reduces negative effects from bad weather.',
   },
-  {
-    id: 'logistics-restock-1',
-    category: 'logistics',
-    tier: 1,
-    name: 'Quick Supply Grab',
-    cost: 900,
-    upkeep: 0,
-    effects: {
-      command_unlock: 'restockSupply',
-      command_restock_units: 5,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 5,
-    description: 'Snag a few extra servings from the cooler once per service surge.',
-  },
-  {
-    id: 'logistics-restock-2',
-    category: 'logistics',
-    tier: 2,
-    name: 'Roadside Resupply',
-    cost: 1500,
-    upkeep: 0,
-    effects: {
-      command_restock_units: 10,
-    },
-    unlock_requirements: ['logistics-restock-1'],
-    unlocksAtRep: 15,
-    description: 'A courier keeps a steady handful of extra ingredients ready for the line.',
-  },
-  {
-    id: 'logistics-restock-3',
-    category: 'logistics',
-    tier: 3,
-    name: 'Logistics Pipeline',
-    cost: 2300,
-    upkeep: 0,
-    effects: {
-      command_restock_units: SUPPLY_MAX_UNITS,
-      command_restock_fullService: true,
-    },
-    unlock_requirements: ['logistics-restock-2'],
-    unlocksAtRep: 25,
-    description: 'The pipeline runs noon-to-close so you can refill the truck mid-service.',
-  },
-  {
-    id: 'flavor-lab-1',
-    category: 'recipe-variant',
-    tier: 1,
-    name: 'Flavor Lab',
-    cost: 800,
-    upkeep: 0,
-    effects: {
-      variantChanceBonus: 0.1,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 1,
-    unlocksAtRep: 0,
-    description: 'Basic test kitchen setup. Slightly higher chance that new recipes roll as strong variants instead of flops.',
-  },
-  {
-    id: 'flavor-lab-2',
-    category: 'recipe-variant',
-    tier: 2,
-    name: 'Experimental Station',
-    cost: 1600,
-    upkeep: 0,
-    effects: {
-      variantChanceBonus: 0.2,
-    },
-    unlock_requirements: ['flavor-lab-1'],
-    unlocksAtRep: 10,
-    description: 'Dialed-in processes and better instincts. Significantly boosts the chance of landing a high-stat recipe variant.',
-  },
-  {
-    id: 'flavor-lab-3',
-    category: 'recipe-variant',
-    tier: 3,
-    name: 'Culinary Instinct',
-    cost: 2600,
-    upkeep: 0,
-    effects: {
-      minRecipeBonusStats: 1,
-    },
-    unlock_requirements: ['flavor-lab-2'],
-    unlocksAtRep: 20,
-    description: 'You rarely miss anymore. Every crafted recipe gets at least a small stat boost.',
-  },
-  {
-    id: 'safety-training-1',
-    category: 'danger',
-    tier: 1,
-    name: 'Basic Safety Training',
-    cost: 600,
-    upkeep: 0,
-    effects: {
-      dangerPercentDelta: -0.03,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 1,
-    description: 'Everyone on the truck knows the basics. Slightly lowers the chance of bad events.',
-  },
-  {
-    id: 'safety-training-2',
-    category: 'danger',
-    tier: 2,
-    name: 'Fire Marshal Walkthrough',
-    cost: 1200,
-    upkeep: 0,
-    effects: {
-      dangerPercentDelta: -0.05,
-    },
-    unlock_requirements: ['safety-training-1'],
-    unlocksAtRep: 10,
-    description: 'A full walkaround and checklist from the pros. Further reduces danger events.',
-  },
-  {
-    id: 'safety-training-3',
-    category: 'danger',
-    tier: 3,
-    name: 'Full Truck Certification',
-    cost: 2200,
-    upkeep: 0,
-    effects: {
-      dangerPercentDelta: -0.1,
-    },
-    unlock_requirements: ['safety-training-2'],
-    unlocksAtRep: 20,
-    description: 'Top-to-bottom compliance. Major reduction in disaster chances.',
-  },
-  {
-    id: 'service-flow-1',
-    category: 'service',
-    tier: 1,
-    name: 'Efficient Workflow',
-    cost: 700,
-    upkeep: 0,
-    effects: {
-      flowBonus: 0.05,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 2,
-    description: 'Rearranged stations and a cleaner line. Slight boost to flow.',
-  },
-  {
-    id: 'service-flow-2',
-    category: 'service',
-    tier: 2,
-    name: 'Line Commander',
-    cost: 1500,
-    upkeep: 0,
-    effects: {
-      flowBonus: 0.1,
-    },
-    unlock_requirements: ['service-flow-1'],
-    unlocksAtRep: 15,
-    description: 'Clear roles and callouts keep the line moving.',
-  },
-  {
-    id: 'service-flow-3',
-    category: 'service',
-    tier: 3,
-    name: 'Speed Demon',
-    cost: 2600,
-    upkeep: 0,
-    effects: {
-      flowBonus: 0.15,
-    },
-    unlock_requirements: ['service-flow-2'],
-    unlocksAtRep: 25,
-    description: 'The crew runs like a well-oiled machine. Massive flow bonus.',
-  },
-  {
-    id: 'service-charm-1',
-    category: 'service',
-    tier: 1,
-    name: 'Warm Welcome Training',
-    cost: 600,
-    upkeep: 0,
-    effects: {
-      charmBonusFlat: 1,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 2,
-    description: 'Basic hospitality training for your crew. Slight boost to charm and ratings.',
-  },
-  {
-    id: 'service-charm-2',
-    category: 'service',
-    tier: 2,
-    name: 'Hospitality Badge',
-    cost: 1300,
-    upkeep: 0,
-    effects: {
-      charmBonusFlat: 2,
-    },
-    unlock_requirements: ['service-charm-1'],
-    unlocksAtRep: 15,
-    description: 'Everyone knows guests by name and order. Bigger charm bonus.',
-  },
-  {
-    id: 'service-charm-3',
-    category: 'service',
-    tier: 3,
-    name: 'Neighborhood Legend',
-    cost: 2500,
-    upkeep: 0,
-    effects: {
-      charmBonusFlat: 4,
-    },
-    unlock_requirements: ['service-charm-2'],
-    unlocksAtRep: 30,
-    description: 'People come as much for you as for the food.',
-  },
-  {
-    id: 'menu-mastery-1',
-    category: 'menu-strategy',
-    tier: 1,
-    name: 'Cross-Sell Engine',
-    cost: 900,
-    upkeep: 0,
-    effects: {
-      leastPopularItemDemandBonus: 0.1,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 3,
-    description: 'Menus and callouts that highlight your full lineup. Your least popular item gets a demand boost.',
-  },
-  {
-    id: 'menu-mastery-2',
-    category: 'menu-strategy',
-    tier: 2,
-    name: 'Combo Crafting',
-    cost: 1600,
-    upkeep: 0,
-    effects: {
-      threeItemMenuRatingBonus: 2,
-      threeItemMenuHypeBonus: 3,
-    },
-    unlock_requirements: ['menu-mastery-1'],
-    unlocksAtRep: 15,
-    description: 'Intentional bowl + handheld + drink combos. Extra bonus when you run a full three-item lineup.',
-  },
-  {
-    id: 'menu-mastery-3',
-    category: 'menu-strategy',
-    tier: 3,
-    name: 'Pairing Advisor',
-    cost: 2400,
-    upkeep: 0,
-    effects: {
-      synergyEffectMultiplier: 1.2,
-    },
-    unlock_requirements: ['menu-mastery-2'],
-    unlocksAtRep: 25,
-    description: 'You lean hard into perfect pairings. All synergy bonuses are more powerful.',
-  },
-  {
-    id: 'command-rally-staff',
-    category: 'command',
-    tier: 1,
-    name: 'Command: Rally Staff',
-    cost: 1200,
-    upkeep: 0,
-    effects: {
-      command_unlock: 'rallyStaff',
-      command_rallyStaff_flowMultiplier: 1.2,
-      command_rallyStaff_durationTicks: 30,
-      command_rallyStaff_cooldownTicks: 120,
-    },
-    unlock_requirements: [],
-    unlocksAtDay: 3,
-    description: 'Unlocks an active command that temporarily boosts flow during rushes.',
-  },
-  {
-    id: 'command-feature-dish',
-    category: 'command',
-    tier: 1,
-    name: 'Command: Feature Dish',
-    cost: 1400,
-    upkeep: 0,
-    effects: {
-      command_unlock: 'featureDish',
-      command_featureDish_demandMultiplier: 1.25,
-      command_featureDish_durationTicks: 999,
-      command_featureDish_cooldownDays: 1,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 10,
-    description: 'Unlocks a once-per-day feature promo for one dish, spiking its demand.',
-  },
-  {
-    id: 'command-lunch-focus',
-    category: 'command',
-    tier: 1,
-    name: 'Command: Lunch Rush Focus',
-    cost: 1600,
-    upkeep: 0,
-    effects: {
-      command_unlock: 'lunchRushFocus',
-      command_lunchRushFocus_lineLossMultiplier: 0.7,
-      command_lunchRushFocus_durationTicks: 40,
-      command_lunchRushFocus_cooldownTicks: 140,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 15,
-    description: 'Unlocks a mid-day focus mode that reduces customers lost from the line.',
-  },
-  {
-    id: 'special-street-team',
-    category: 'special',
-    tier: 1,
-    name: 'Street Team',
-    cost: 1100,
-    upkeep: 0,
-    effects: {
-      dailyFlatHypeGain: 3,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 8,
-    description: 'A couple of superfans who hype you up online and at the curb.',
-  },
-  {
-    id: 'special-smoker-attachment',
-    category: 'special',
-    tier: 1,
-    name: 'Smoker Attachment',
-    cost: 1800,
-    upkeep: 0,
-    effects: {
-      smokeSynergyMultiplier: 1.2,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 12,
-    description: 'Dialed-in smoke control makes your smoky bowls incredibly consistent. Smoke-based synergies hit harder.',
-  },
-  {
-    id: 'special-cold-press',
-    category: 'special',
-    tier: 1,
-    name: 'Cold Press Station',
-    cost: 1800,
-    upkeep: 0,
-    effects: {
-      freshDrinkSynergyMultiplier: 1.2,
-      tropicalDrinkSynergyMultiplier: 1.2,
-    },
-    unlock_requirements: [],
-    unlocksAtRep: 12,
-    description: 'Bright, crisp drinks that pair perfectly with heavy mains. Fresh and tropical drink synergies are stronger.',
-  },
 ];
 
 const UPGRADE_LOOKUP = new Map(UPGRADE_DECK.map((upgrade) => [upgrade.id, upgrade]));
@@ -1972,13 +1505,6 @@ const UPGRADE_CATEGORY_META = {
   staff: { label: 'Crew development', blurb: 'Boost helpers, unlock commands.' },
   brand: { label: 'Brand/marketing', blurb: 'Hype swings + new flavor ceilings.' },
   economy: { label: 'Economy', blurb: 'Cost control & passive revenue.' },
-  logistics: { label: 'Logistics', blurb: 'Keep the truck stocked when service gets hectic.' },
-  service: { label: 'Service ops', blurb: 'Flow, charm, and crew tempo.' },
-  'menu-strategy': { label: 'Menu strategy', blurb: 'Demand boosts and synergy polish.' },
-  'recipe-variant': { label: 'Recipe variants', blurb: 'Bias custom combos toward stronger scores.' },
-  danger: { label: 'Danger control', blurb: 'Prep to avoid meltdowns and fines.' },
-  command: { label: 'Commands', blurb: 'Activate one-time rush tactics.' },
-  special: { label: 'Special perks', blurb: 'Street teams, smokers, and dranks.' },
 };
 
 const DIFFICULTY_STORAGE_KEY = 'fts_difficulty_tuning_v1';
@@ -2126,9 +1652,8 @@ const state = {
   servicePaused: false,
   serviceMidpointCalled: false,
   serviceFinalCalled: false,
+  strikes: 0,
   gameOver: false,
-  liveStatsBase: { progress: 0, served: 0, angry: 0, revenue: 0 },
-  dangerScale: 0,
   inventory: { units: 0, age: 0 },
   purchaseUnits: 20,
   purchaseCost: 0,
@@ -2145,7 +1670,7 @@ const state = {
   ownedUpgrades: new Set(),
   upgradeBonuses: createUpgradeBonusState(),
   totalUpgradeUpkeep: 0,
-  dangerControlUsed: false,
+  strikeBribeUsed: false,
   starterProfileId: null,
   loanPrincipal: 0,
   loanDueDay: null,
@@ -2155,353 +1680,6 @@ const state = {
   loanRewardMultiplier: 1,
   profileTruckSpeed: BASE_TRUCK_STATS.speed,
   profileTruckCapacity: BASE_TRUCK_STATS.capacity,
-};
-
-const randomBetween = (min, max) => {
-  const low = Math.min(min, max);
-  const high = Math.max(min, max);
-  return Math.round(low + Math.random() * (high - low));
-};
-
-const DANGER_SCALE_MAX = 100;
-const DANGER_SCALE_DECAY = 7;
-
-const clampDangerScale = (value) => clamp(value, 0, DANGER_SCALE_MAX);
-
-const DANGER_EVENT_POOLS = {
-  profit: [
-    {
-      id: 'refund-riot',
-      title: 'Refund Riot',
-      description: 'Angry guests demanded comps after the wait, emptying the till.',
-      mechanic: 'flat money',
-      severity: 15,
-      apply: () => {
-        const loss = randomBetween(150, 400);
-        state.money = clamp(state.money - loss, -9999, 9999);
-        return `Paid ${currency(loss)} in refunds.`;
-      },
-    },
-    {
-      id: 'warm-fridge-blues',
-      title: 'Warm Fridge Blues',
-      description: 'Spoiled stock forced discounts while critics sniffed stale bowls.',
-      mechanic: 'rep / money',
-      severity: 14,
-      apply: () => {
-        const cost = randomBetween(120, 300);
-        const repLoss = randomBetween(3, 6);
-        state.money = clamp(state.money - cost, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Dropped ${currency(cost)} to dump old supply and lost ${repLoss} reputation.`;
-      },
-    },
-    {
-      id: 'charity-pop-up',
-      title: 'Charity Pop-Up IOU',
-      description: 'You comped meals for a fundraiser crowd and the hype spiked.',
-      mechanic: 'money / hype',
-      severity: 12,
-      apply: () => {
-        const cost = randomBetween(100, 220);
-        const hypeGain = randomBetween(6, 10);
-        state.money = clamp(state.money - cost, -9999, 9999);
-        state.hype = clamp(state.hype + hypeGain, 0, 100);
-        return `Gave away ${currency(cost)} and hype rose ${hypeGain} pts.`;
-      },
-    },
-    {
-      id: 'parking-ticket-parade',
-      title: 'Parking Ticket Parade',
-      description: 'Meter maids tagged every minute your line stretched past the curb.',
-      mechanic: 'flat money',
-      severity: 10,
-      apply: () => {
-        const fine = randomBetween(80, 150);
-        const repLoss = randomBetween(1, 2);
-        state.money = clamp(state.money - fine, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Paid ${currency(fine)} and lost ${repLoss} rep from the spectacle.`;
-      },
-    },
-    {
-      id: 'bribe-blogger',
-      title: 'Bribe The Blogger',
-      description: 'A critic demanded a soft take before letting your line breathe.',
-      mechanic: 'flat money',
-      severity: 13,
-      apply: () => {
-        const cost = randomBetween(200, 350);
-        state.money = clamp(state.money - cost, -9999, 9999);
-        return `Paid ${currency(cost)} for safer headlines.`;
-      },
-    },
-    {
-      id: 'card-reader-glitch',
-      title: 'Card Reader Glitch',
-      description: 'Tap-to-pay died, so you covered drinks to keep folks from walking.',
-      mechanic: 'flat money',
-      severity: 11,
-      apply: () => {
-        const loss = randomBetween(70, 140);
-        const repLoss = randomBetween(1, 2);
-        state.money = clamp(state.money - loss, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Comped ${currency(loss)} to keep lines moving and lost ${repLoss} rep.`;
-      },
-    },
-    {
-      id: 'spillover-therapy',
-      title: 'Prep Spillover Therapy',
-      description: 'Long shifts meant therapy bills, but the crew stayed together for a day.',
-      mechanic: 'flat money / rep',
-      severity: 12,
-      apply: () => {
-        const cost = randomBetween(100, 200);
-        const repGain = randomBetween(0, 2);
-        state.money = clamp(state.money - cost, -9999, 9999);
-        state.reputation = clamp(state.reputation + repGain, 0, 100);
-        return `Paid ${currency(cost)} so the crew keeps showing up (+${repGain} rep).`;
-      },
-    },
-  ],
-  angry: [
-    {
-      id: 'grease-fire-hangover',
-      title: 'Grease Fire Hangover',
-      description: 'A grease flare smoked out the prep line; guests smell the panic.',
-      mechanic: 'rep',
-      severity: 13,
-      apply: () => {
-        const loss = randomBetween(2, 5);
-        state.reputation = clamp(state.reputation - loss, 0, 100);
-        return `Reputation drops ${loss} pts as critics sniff the burn.`;
-      },
-    },
-    {
-      id: 'drip-tray-flood',
-      title: 'Drip Tray Flood',
-      description: 'Gray water spills onto the curb; a regulator fines you for the mess.',
-      mechanic: 'money / hype',
-      severity: 12,
-      apply: () => {
-        const fine = randomBetween(100, 250);
-        const hypeLoss = randomBetween(2, 4);
-        state.money = clamp(state.money - fine, -9999, 9999);
-        state.hype = clamp(state.hype - hypeLoss, 0, 100);
-        return `Paid ${currency(fine)} and hype slipped ${hypeLoss} pts.`;
-      },
-    },
-    {
-      id: 'drizzle-delay',
-      title: 'Drizzle \'N\' Delay',
-      description: 'Rain turned the line into a muddy slog and patience thinned.',
-      mechanic: 'hype',
-      severity: 11,
-      apply: () => {
-        const loss = randomBetween(4, 8);
-        state.hype = clamp(state.hype - loss, 0, 100);
-        return `Hype trickled down ${loss} pts.`;
-      },
-    },
-    {
-      id: 'busted-speaker-vibe',
-      title: 'Busted Speaker Vibe',
-      description: 'Playlist cut out, waits felt longer and the crowd grumbled louder.',
-      mechanic: 'hype / rep',
-      severity: 12,
-      apply: () => {
-        const hypeLoss = randomBetween(3, 5);
-        const repLoss = randomBetween(1, 3);
-        state.hype = clamp(state.hype - hypeLoss, 0, 100);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Hype down ${hypeLoss} pts and rep down ${repLoss} pts.`;
-      },
-    },
-    {
-      id: 'overtime-mutiny',
-      title: 'Overtime Mutiny',
-      description: 'Crew threatened to quit after another marathon rush, so you paid extra.',
-      mechanic: 'flat money',
-      severity: 13,
-      apply: () => {
-        const cost = randomBetween(60, 120);
-        const repLoss = randomBetween(2, 4);
-        state.money = clamp(state.money - cost, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Spent ${currency(cost)} hush money and lost ${repLoss} rep.`;
-      },
-    },
-    {
-      id: 'rival-slash',
-      title: 'Rival Slash N’ Dash',
-      description: 'Your rival sliced a tire and tagged your board after the mess.',
-      mechanic: 'flat money',
-      severity: 12,
-      apply: () => {
-        const repair = randomBetween(80, 180);
-        const repLoss = randomBetween(1, 2);
-        state.money = clamp(state.money - repair, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Spent ${currency(repair)} on repairs and lost ${repLoss} rep.`;
-      },
-    },
-  ],
-  rating: [
-    {
-      id: 'hero-sandwich-backlash',
-      title: 'Hero Sandwich Backlash',
-      description: 'An influencer blasted your prices, drawing bargain hunters.',
-      mechanic: 'rep / hype',
-      severity: 13,
-      apply: () => {
-        const repLoss = randomBetween(4, 10);
-        const hypeGain = randomBetween(2, 4);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        state.hype = clamp(state.hype + hypeGain, 0, 100);
-        return `Rep down ${repLoss} pts, hype up ${hypeGain} pts from the drama.`;
-      },
-    },
-    {
-      id: 'data-leak-menu',
-      title: 'Data Leak Menu',
-      description: 'Your secret spice mix leaked and the rumor mill cooled the hype.',
-      mechanic: 'hype / rep',
-      severity: 14,
-      apply: () => {
-        const hypeLoss = randomBetween(5, 8);
-        const repLoss = randomBetween(2, 4);
-        state.hype = clamp(state.hype - hypeLoss, 0, 100);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Hype down ${hypeLoss} pts, rep down ${repLoss} pts.`;
-      },
-    },
-    {
-      id: 'prep-table-lawsuit',
-      title: 'Prep Table Lawsuit',
-      description: 'A guest slipped on a cooler hose and your lawyer bill hit the ledger.',
-      mechanic: 'money / rep',
-      severity: 15,
-      apply: () => {
-        const percent = randomBetween(5, 8);
-        const loss = Math.round((state.money || 0) * (percent / 100));
-        const repLoss = randomBetween(1, 2);
-        state.money = clamp(state.money - loss, -9999, 9999);
-        state.reputation = clamp(state.reputation - repLoss, 0, 100);
-        return `Paid ${currency(loss)} (−${percent}% of cash) and lost ${repLoss} rep.`;
-      },
-    },
-  ],
-  contamination: [
-    {
-      id: 'trench-coat-health-check',
-      title: 'Trench Coat Health Check',
-      description: 'Inspectors noticed temp logs missing and slapped a fine.',
-      mechanic: 'flat money',
-      severity: 15,
-      apply: () => {
-        const fine = randomBetween(120, 220);
-        state.money = clamp(state.money - fine, -9999, 9999);
-        state.reputation = clamp(state.reputation - randomBetween(2, 4), 0, 100);
-        return `Paid ${currency(fine)} and rep took a hit.`;
-      },
-    },
-    {
-      id: 'rain-check-catering',
-      title: 'Rain Check Catering',
-      description: 'A canceled gig dumped ingredients back on your line, but risk of spoilage doubled.',
-      mechanic: 'hype',
-      severity: 12,
-      apply: () => {
-        const change = randomBetween(-2, 3);
-        state.hype = clamp(state.hype + change, 0, 100);
-        return change >= 0
-          ? `Hype gained ${change} pts from goodwill while you scramble stock.`
-          : `Hype slipped ${Math.abs(change)} pts because of the no-show.`;
-      },
-    },
-  ],
-};
-
-const LOAN_DEFAULT_EVENT = {
-  id: 'loan-default',
-  title: 'Loan Shark Snarl',
-  description: 'Defaulting makes lenders talk and the neighborhood grows suspicious.',
-  mechanic: 'hype / rep',
-  severity: 20,
-  apply: () => {
-    const repLoss = randomBetween(2, 5);
-    const hypeLoss = randomBetween(4, 7);
-    state.reputation = clamp(state.reputation - repLoss, 0, 100);
-    state.hype = clamp(state.hype - hypeLoss, 0, 100);
-    return `Rep down ${repLoss} pts, hype down ${hypeLoss} pts.`;
-  },
-};
-
-const applyDangerEvent = (event, context = {}) => {
-  if (!event) return;
-  state.dangerScale = clampDangerScale(state.dangerScale + (event.severity || 12));
-  const effectNote = typeof event.apply === 'function' ? event.apply(context) : '';
-  const mechanicText = event.mechanic ? ` (${event.mechanic})` : '';
-  logServiceMessage(`${event.title}${mechanicText}: ${event.description}${effectNote ? ` ${effectNote}` : ''}`);
-};
-
-const evaluateDangerConsequences = (outcome) => {
-  if (!outcome) return;
-
-  const drivenTriggers = new Set();
-  const targets = [];
-  const angryRatio = outcome.served ? outcome.angry / outcome.served : outcome.angry > 0 ? 1 : 0;
-  const dangerReduction = Math.max(0, -(state.upgradeBonuses?.dangerPercentDelta || 0));
-  const chaoticDay = angryRatio >= 0.25;
-  const carryoverPenalty = computeCarryoverAngerPenalty(state.inventory, state.upgradeBonuses);
-  const angryThreshold = clamp(
-    0.4 * (state.difficulty?.angryTolerance || 1) - carryoverPenalty,
-    0.1,
-    0.9,
-  );
-
-  if (outcome.profit <= 0) targets.push('profit');
-  if (angryRatio >= angryThreshold) targets.push('angry');
-  if (outcome.rating < 65) targets.push('rating');
-  if (outcome.contamination) targets.push('contamination');
-
-  const selected = new Set();
-  targets.forEach((tag) => {
-    const effectiveReduction = chaoticDay ? 0 : dangerReduction;
-    if (effectiveReduction > 0 && Math.random() < effectiveReduction) {
-      return;
-    }
-    const pool = DANGER_EVENT_POOLS[tag];
-    if (!pool || !pool.length) return;
-    let event = pool[Math.floor(Math.random() * pool.length)];
-    let attempts = 0;
-    while (event && selected.has(event.id) && attempts < pool.length) {
-      event = pool[Math.floor(Math.random() * pool.length)];
-      attempts += 1;
-    }
-    if (event && !selected.has(event.id)) {
-      applyDangerEvent(event, { outcome, angryRatio });
-      selected.add(event.id);
-    }
-  });
-
-  if (!targets.length) {
-    const relief = Math.min(6, Math.max(1, Math.round((outcome.profit || 0) / 60)));
-    const previous = state.dangerScale;
-    state.dangerScale = clampDangerScale(state.dangerScale - relief);
-    if (state.dangerScale < previous) {
-      logServiceMessage(`Clean day. Danger scale eased by ${previous - state.dangerScale}%.`);
-    }
-  }
-};
-
-const decayDangerScale = () => {
-  const previous = state.dangerScale;
-  state.dangerScale = clampDangerScale(state.dangerScale - DANGER_SCALE_DECAY);
-  if (state.dangerScale < previous) {
-    logServiceMessage('Danger scale cooled a bit overnight.');
-  }
 };
 
 const getSupplyCapacityLimit = () => getSupplyCapacityLimitFromState(state);
@@ -2531,7 +1709,7 @@ const PHASE_TIPS = {
 const setPhase = (nextPhase) => {
   state.phase = nextPhase;
   if (nextPhase === 'prep') {
-    state.dangerControlUsed = false;
+    state.strikeBribeUsed = false;
   }
   updatePhaseGuide();
   updatePhasePanels();
@@ -2582,18 +1760,7 @@ const applyUpgradeEffectValue = (bonuses, key, value) => {
     case 'charm_mult':
       state.staff.charm *= value;
       break;
-    case 'flowBonus':
-      state.staff.efficiency += value;
-      bonuses.flowBonus = (bonuses.flowBonus || 0) + value;
-      break;
-    case 'charmBonusFlat':
-      state.staff.charm += value;
-      bonuses.charmBonusFlat = (bonuses.charmBonusFlat || 0) + value;
-      break;
     case 'hype_daily_bonus':
-      bonuses.hypeDailyBonus += value;
-      break;
-    case 'dailyFlatHypeGain':
       bonuses.hypeDailyBonus += value;
       break;
     case 'hype_random_range':
@@ -2604,42 +1771,6 @@ const applyUpgradeEffectValue = (bonuses, key, value) => {
       break;
     case 'supplies_cost_pct':
       bonuses.suppliesCostPct += value;
-      break;
-    case 'variantChanceBonus':
-      bonuses.variantChanceBonus += value;
-      break;
-    case 'minRecipeBonusStats':
-      bonuses.minRecipeBonusStats += value;
-      break;
-    case 'dangerPercentDelta':
-      bonuses.dangerPercentDelta += value;
-      break;
-    case 'leastPopularItemDemandBonus':
-      bonuses.leastPopularItemDemandBonus += value;
-      break;
-    case 'threeItemMenuRatingBonus':
-      bonuses.threeItemMenuRatingBonus += value;
-      break;
-    case 'threeItemMenuHypeBonus':
-      bonuses.threeItemMenuHypeBonus += value;
-      break;
-    case 'synergyEffectMultiplier':
-      bonuses.synergyEffectMultiplier *= value;
-      break;
-    case 'smokeSynergyMultiplier':
-      bonuses.smokeSynergyMultiplier *= value;
-      break;
-    case 'freshDrinkSynergyMultiplier':
-      bonuses.freshDrinkSynergyMultiplier *= value;
-      break;
-    case 'tropicalDrinkSynergyMultiplier':
-      bonuses.tropicalDrinkSynergyMultiplier *= value;
-      break;
-    case 'command_restock_units':
-      bonuses.command_restock_units = Math.max(bonuses.command_restock_units || 0, value);
-      break;
-    case 'command_restock_fullService':
-      bonuses.command_restock_fullService = Boolean(value);
       break;
     default: {
       if (typeof value === 'number') {
@@ -2759,7 +1890,7 @@ const cacheElements = () => {
   elements.hudMoney = document.getElementById('hud-money');
   elements.hudHype = document.getElementById('hud-hype');
   elements.hudRep = document.getElementById('hud-rep');
-  elements.hudDanger = document.getElementById('hud-danger');
+  elements.hudStrikes = document.getElementById('hud-strikes');
   elements.statSpeed = document.getElementById('stat-speed');
   elements.statCapacity = document.getElementById('stat-capacity');
   elements.statEfficiency = document.getElementById('stat-efficiency');
@@ -2768,14 +1899,9 @@ const cacheElements = () => {
   elements.statCharmCompact = document.getElementById('stat-charm-compact');
   elements.eventName = document.getElementById('event-name');
   elements.eventDescription = document.getElementById('event-description');
+  elements.eventEffects = document.getElementById('event-effects');
   elements.serviceBar = document.getElementById('service-bar');
   elements.serviceStatus = document.getElementById('service-status');
-  elements.serviceProgressLabel = document.getElementById('service-progress-label');
-  elements.statTurnout = document.getElementById('stat-turnout');
-  elements.statHype = document.getElementById('stat-hype');
-  elements.statRating = document.getElementById('stat-rating');
-  elements.hudOnTruck = document.getElementById('hud-on-truck');
-  elements.hudProjectedDemand = document.getElementById('hud-projected-demand');
   elements.serviceFeed = document.getElementById('service-feed');
   elements.serviceHints = document.getElementById('service-hints');
   elements.hintList = document.getElementById('hint-list');
@@ -2864,7 +1990,7 @@ const cacheElements = () => {
   };
   elements.synergyList = document.getElementById('synergy-list');
   elements.lossVideo = document.getElementById('loss-video');
-  elements.dangerControlButton = document.getElementById('danger-control');
+  elements.strikePayoffButton = document.getElementById('strike-payoff');
 };
 
 const GAUGE_ICONS = {
@@ -2935,22 +2061,6 @@ const describeUpgradeAvailability = (upgrade) => {
       message: `Requires ${missing.map((id) => getUpgradeNameById(id)).join(', ')}`,
     };
   }
-  if (typeof upgrade.unlocksAtDay === 'number' && state.day < upgrade.unlocksAtDay) {
-    return {
-      status: 'locked',
-      buttonLabel: 'Locked',
-      disabled: true,
-      message: `Unlocks on Day ${upgrade.unlocksAtDay}`,
-    };
-  }
-  if (typeof upgrade.unlocksAtRep === 'number' && state.reputation < upgrade.unlocksAtRep) {
-    return {
-      status: 'locked',
-      buttonLabel: 'Locked',
-      disabled: true,
-      message: `Requires ${upgrade.unlocksAtRep} reputation`,
-    };
-  }
   if (state.money < upgrade.cost) {
     const short = upgrade.cost - state.money;
     return {
@@ -2996,12 +2106,6 @@ const applyDailyUpgradeBonuses = () => {
 };
 
 const formatCommandLabel = (commandId) => SERVICE_COMMANDS[commandId]?.label || titleize(commandId);
-
-const isCommandUnlocked = (command) => {
-  if (!command) return false;
-  if (!command.requiredUpgrade) return true;
-  return isUpgradeOwned(command.requiredUpgrade);
-};
 
 const formatUpgradeEffect = (key, value) => {
   switch (key) {
@@ -3060,34 +2164,6 @@ const formatUpgradeEffect = (key, value) => {
       return `Critic harshness ${formatPercentValue(value)}`;
     case 'weather_penalty_pct':
       return `Weather penalty ${formatPercentValue(value)}`;
-    case 'flowBonus':
-      return `Flow ${formatPercentValue(Math.round(value * 100))}`;
-    case 'charmBonusFlat':
-      return `Charm ${formatSigned(Math.round(value))}`;
-    case 'variantChanceBonus':
-      return `Variant chance ${formatPercentValue(Math.round(value * 100))}`;
-    case 'minRecipeBonusStats':
-      return `Min recipe bonus +${value}`;
-    case 'dangerPercentDelta':
-      return `Danger chance ${formatPercentValue(Math.round(value * 100))}`;
-    case 'leastPopularItemDemandBonus':
-      return `Least popular demand ${formatPercentValue(Math.round(value * 100))}`;
-    case 'threeItemMenuRatingBonus':
-      return `Three-item rating +${Math.round(value)}`;
-    case 'threeItemMenuHypeBonus':
-      return `Three-item hype +${Math.round(value)}`;
-    case 'synergyEffectMultiplier':
-      return `Synergies ×${value.toFixed(2)}`;
-    case 'smokeSynergyMultiplier':
-      return `Smoke synergy ×${value.toFixed(2)}`;
-    case 'freshDrinkSynergyMultiplier':
-      return `Fresh drink synergy ×${value.toFixed(2)}`;
-    case 'tropicalDrinkSynergyMultiplier':
-      return `Tropical drink synergy ×${value.toFixed(2)}`;
-    case 'command_restock_units':
-      return `Restock ${value} units during service`;
-    case 'command_restock_fullService':
-      return 'Restock to full capacity during service';
     default: {
       if (typeof value === 'boolean') {
         return value ? `Unlocks ${titleize(key)}` : '';
@@ -3551,13 +2627,8 @@ const renderCommandButtons = () => {
 };
 
 const updateStockForecast = (outcome) => {
-  const hasForecastDetails =
-    elements.forecastStock && elements.forecastDemand && elements.forecastSellout && elements.stockNote;
+  if (!elements.forecastStock || !elements.forecastDemand || !elements.forecastSellout || !elements.stockNote) return;
   if (!outcome) {
-    if (elements.hudProjectedDemand) {
-      elements.hudProjectedDemand.textContent = '--';
-    }
-    if (!hasForecastDetails) return;
     elements.forecastStock.textContent = formatUnits(inventoryManager.units || 0);
     elements.forecastDemand.textContent = '--';
     elements.forecastSellout.textContent = '--';
@@ -3566,10 +2637,6 @@ const updateStockForecast = (outcome) => {
   }
   const stock = outcome.stockOnTruck ?? inventoryManager.units ?? 0;
   const demand = outcome.projectedDemand ?? 0;
-  if (elements.hudProjectedDemand) {
-    elements.hudProjectedDemand.textContent = formatUnits(demand);
-  }
-  if (!hasForecastDetails) return;
   elements.forecastStock.textContent = formatUnits(stock);
   elements.forecastDemand.textContent = formatUnits(demand);
   if (outcome.selloutProgress && outcome.selloutProgress < 100) {
@@ -3652,33 +2719,6 @@ const calculateComboEffects = (dishes) => {
       synergyHype += entry.hypeMod;
     }
   });
-  const upgradeBonuses = state.upgradeBonuses || createUpgradeBonusState();
-  if (dishes.length >= 3) {
-    synergyRating += upgradeBonuses.threeItemMenuRatingBonus || 0;
-    synergyHype += upgradeBonuses.threeItemMenuHypeBonus || 0;
-  }
-  const synergyMultiplier = upgradeBonuses.synergyEffectMultiplier || 1;
-  synergyDemand *= synergyMultiplier;
-  synergyRating *= synergyMultiplier;
-  synergyHype *= synergyMultiplier;
-  const hasSmokeDish = dishes.some((dish) => dish.flavor === 'Smoke');
-  if (hasSmokeDish && upgradeBonuses.smokeSynergyMultiplier && upgradeBonuses.smokeSynergyMultiplier !== 1) {
-    synergyDemand *= upgradeBonuses.smokeSynergyMultiplier;
-    synergyRating *= upgradeBonuses.smokeSynergyMultiplier;
-    synergyHype *= upgradeBonuses.smokeSynergyMultiplier;
-  }
-  const hasFreshDrink = dishes.some((dish) => dish.form === 'Drink' && dish.flavor === 'Fresh');
-  if (hasFreshDrink && upgradeBonuses.freshDrinkSynergyMultiplier && upgradeBonuses.freshDrinkSynergyMultiplier !== 1) {
-    synergyDemand *= upgradeBonuses.freshDrinkSynergyMultiplier;
-    synergyRating *= upgradeBonuses.freshDrinkSynergyMultiplier;
-    synergyHype *= upgradeBonuses.freshDrinkSynergyMultiplier;
-  }
-  const hasTropicalDrink = dishes.some((dish) => dish.form === 'Drink' && dish.flavor === 'Tropical');
-  if (hasTropicalDrink && upgradeBonuses.tropicalDrinkSynergyMultiplier && upgradeBonuses.tropicalDrinkSynergyMultiplier !== 1) {
-    synergyDemand *= upgradeBonuses.tropicalDrinkSynergyMultiplier;
-    synergyRating *= upgradeBonuses.tropicalDrinkSynergyMultiplier;
-    synergyHype *= upgradeBonuses.tropicalDrinkSynergyMultiplier;
-  }
 
   const demandMod = clamp(1 + tierAverage * 0.12 + (mods.popularity || 0) + synergyDemand, 0.65, 1.75);
   const ratingMod = (mods.rating || 0) + tierAverage * 4 + synergyRating;
@@ -3955,37 +2995,40 @@ const setPrepMessage = (message) => {
   elements.prepNote.textContent = message;
 };
 
-const attemptDangerControl = () => {
+const attemptStrikePayoff = () => {
   if (state.phase !== 'prep') {
-    setPrepMessage('Damage control only happens before service.');
+    setPrepMessage('Handle hush deals during prep, before tickets fly.');
     return;
   }
-  if (state.dangerControlUsed) {
-    setPrepMessage('Already spent a favor this prep cycle.');
+  if (state.strikeBribeUsed) {
+    setPrepMessage('You already cashed in a favor this prep.');
     return;
   }
-  if (state.dangerScale <= 0) {
-    setPrepMessage('Danger scale is calm. Nothing to smooth over.');
+  if (state.strikes <= 0) {
+    setPrepMessage('Clean record. No strikes to smooth over.');
     return;
   }
   if (state.money <= 0) {
-    setPrepMessage('No cash on hand to grease the right palms.');
+    setPrepMessage('No cash on hand to pay anyone off.');
     return;
   }
-  const ratio = 0.35 + Math.random() * 0.25;
+  const ratio = 0.4 + Math.random() * 0.2;
   const cost = Math.min(state.money, Math.max(1, Math.round(state.money * ratio)));
-  const story = formatDangerControlStory(cost);
-  const confirmMessage = `${story}\n\nSpend ${currency(cost)} to cool the danger scale?`;
+  if (cost <= 0) {
+    setPrepMessage('Need at least a little cash before anyone listens.');
+    return;
+  }
+  const story = formatStrikeBribeStory(cost);
+  const confirmMessage = `${story}\n\nPay ${currency(cost)} to erase one strike?`;
   const confirmed = typeof window !== 'undefined' ? window.confirm(confirmMessage) : true;
   if (!confirmed) {
-    setPrepMessage('Kept your cash. Danger stays high for now.');
+    setPrepMessage('Kept your cash. Strikes remain for now.');
     return;
   }
   state.money -= cost;
-  const relief = randomBetween(8, 18);
-  state.dangerScale = clamp(state.dangerScale - relief, 0, DANGER_SCALE_MAX);
-  state.dangerControlUsed = true;
-  setPrepMessage(`${story} Danger scale eased to ${Math.round(state.dangerScale)}%.`);
+  state.strikes = Math.max(0, state.strikes - 1);
+  state.strikeBribeUsed = true;
+  setPrepMessage(`${story} Strike count eased to ${state.strikes} / 3.`);
   updateHUD();
 };
 
@@ -4006,7 +3049,6 @@ const attemptPurchaseUpgrade = (upgradeId) => {
   enforceSupplyCapacity();
   updateHUD();
   renderUpgradeDeck();
-  updateCommandButtons();
   updateSupplyUI();
   setPrepMessage(`${upgrade.name} installed. Upkeep ${formatCurrencySigned(upgrade.upkeep || 0)}/day.`);
 };
@@ -4234,8 +3276,8 @@ const updateHUD = () => {
   elements.hudMoney.textContent = currency(state.money);
   elements.hudHype.textContent = `${state.hype}`;
   elements.hudRep.textContent = `${state.reputation}`;
-  if (elements.hudDanger) {
-    elements.hudDanger.textContent = `${Math.round(state.dangerScale)}%`;
+  if (elements.hudStrikes) {
+    elements.hudStrikes.textContent = `${state.strikes} / 3`;
   }
   if (elements.hypeBar) {
     elements.hypeBar.style.setProperty('--mini-progress', `${state.hype}%`);
@@ -4244,7 +3286,7 @@ const updateHUD = () => {
     elements.repBar.style.setProperty('--mini-progress', `${state.reputation}%`);
   }
   elements.statSpeed.textContent = `${state.truck.speed.toFixed(2)}x`;
-  elements.statCapacity.textContent = formatUnits(getSupplyCapacityLimit());
+  elements.statCapacity.textContent = `${formatUnits(getSupplyCapacityLimit())} max`;
   const efficiencyText = `${state.staff.efficiency.toFixed(2)}x`;
   elements.statEfficiency.textContent = efficiencyText;
   if (elements.statEfficiencyCompact) {
@@ -4318,9 +3360,6 @@ const updateSupplyUI = () => {
   if (elements.supplyStock) {
     const capacity = getSupplyCapacityLimit();
     elements.supplyStock.textContent = `Stock: ${formatUnits(inventoryManager.units)} / ${formatUnits(capacity)}`;
-  }
-  if (elements.hudOnTruck) {
-    elements.hudOnTruck.textContent = formatUnits(inventoryManager.units);
   }
   if (elements.supplyCarry) {
     const age = inventoryManager.age;
@@ -4487,8 +3526,8 @@ const attachEvents = () => {
   if (elements.failReset) {
     elements.failReset.addEventListener('click', resetCampaign);
   }
-  if (elements.dangerControlButton) {
-    elements.dangerControlButton.addEventListener('click', attemptDangerControl);
+  if (elements.strikePayoffButton) {
+    elements.strikePayoffButton.addEventListener('click', attemptStrikePayoff);
   }
 
   if (elements.labForm) {
@@ -4586,7 +3625,6 @@ const advanceToNextDay = () => {
   applyDailyUpgradeBonuses();
   decayCommandCooldowns();
   setPhase('prep');
-  decayDangerScale();
   state.lastResults = null;
   state.lastEvent = null;
   updateResultsUI(null);
@@ -4606,9 +3644,6 @@ const advanceToNextDay = () => {
 
 const resetServiceView = () => {
   elements.serviceBar.style.width = '0%';
-  if (elements.serviceProgressLabel) {
-    elements.serviceProgressLabel.textContent = '0%';
-  }
   elements.serviceStatus.textContent = 'Prep dishes, then hit start.';
   elements.serviceFeed.innerHTML = '';
   updateServiceStats({ served: 0, angry: 0, wait: 0, revenue: 0 });
@@ -4618,7 +3653,6 @@ const resetServiceView = () => {
   state.serviceCommandsUsed = new Set();
   state.currentProgress = 0;
   state.serviceProgress = 0;
-  state.liveStatsBase = { progress: 0, served: 0, angry: 0, revenue: 0 };
   state.servicePaused = false;
   state.serviceMidpointCalled = false;
   state.serviceFinalCalled = false;
@@ -4659,8 +3693,8 @@ const startCampaignWithProfile = (profile) => {
   state.servicePaused = false;
   state.serviceMidpointCalled = false;
   state.serviceFinalCalled = false;
+  state.strikes = 0;
   state.gameOver = false;
-  state.dangerScale = 0;
   state.inventory = { units: 0, age: 0 };
   state.purchaseUnits = 20;
   state.purchaseCost = 0;
@@ -4672,7 +3706,7 @@ const startCampaignWithProfile = (profile) => {
   state.ownedUpgrades = new Set();
   state.upgradeBonuses = createUpgradeBonusState();
   state.totalUpgradeUpkeep = 0;
-  state.dangerControlUsed = false;
+  state.strikeBribeUsed = false;
 
   recalculateUpgradeEffects();
   enforceSupplyCapacity();
@@ -4730,29 +3764,21 @@ const renderEventCard = (event) => {
   if (!event) {
     elements.eventName.textContent = 'Waiting for prep';
     elements.eventDescription.textContent = 'Start the day to roll a weather, hype, or critic event.';
+    elements.eventEffects.innerHTML = '';
     updateEnvironmentHints(null);
-    updateEventModifiers(null);
     return;
   }
   elements.eventName.textContent = event.title;
   elements.eventDescription.textContent = event.description;
-  updateEventModifiers(event);
+  elements.eventEffects.innerHTML = '';
+  const effectText = describeEffects(event.effects);
+  if (effectText === 'Vibe only') return;
+  effectText.split(' · ').forEach((chunk) => {
+    const tag = document.createElement('li');
+    tag.textContent = chunk;
+    elements.eventEffects.appendChild(tag);
+  });
   updateEnvironmentHints(event);
-};
-
-const updateEventModifiers = (event) => {
-  const turnout = event?.effects?.turnout ?? 0;
-  const hype = event?.effects?.hype ?? 0;
-  const rating = event?.effects?.rating ?? 0;
-  if (elements.statTurnout) {
-    elements.statTurnout.textContent = `${turnout >= 0 ? '+' : ''}${Math.round(turnout * 100)}% turnout`;
-  }
-  if (elements.statHype) {
-    elements.statHype.textContent = `${hype >= 0 ? '+' : ''}${Math.round(hype)} hype`;
-  }
-  if (elements.statRating) {
-    elements.statRating.textContent = `${rating >= 0 ? '+' : ''}${Math.round(rating)} rating`;
-  }
 };
 
 const prepareSuppliesForDay = () => {
@@ -4775,17 +3801,6 @@ const prepareSuppliesForDay = () => {
   updateSupplyUI();
 };
 
-const chargeSuppliesFromBank = () => {
-  const cost = Math.round(state.purchaseCost || 0);
-  if (cost <= 0) return;
-  state.money = Math.round(state.money - cost);
-  logServiceMessage(`Paid ${currency(cost)} for supplies. Bank ${currency(state.money)}.`);
-  if (state.money < 0) {
-    logServiceMessage('Warning: Bank below $0. Bankruptcy risk if you stay in the red.');
-  }
-  updateHUD();
-};
-
 const startDay = () => {
   if (state.gameOver) {
     logServiceMessage('Campaign failed. Reset to play again.');
@@ -4803,7 +3818,6 @@ const startDay = () => {
   syncModalNextDay();
   elements.serviceFeed.innerHTML = '';
   prepareSuppliesForDay();
-  chargeSuppliesFromBank();
   logServiceMessage('Doors up. Crew is moving.');
   const event = pickEvent();
   state.lastEvent = event;
@@ -4896,9 +3910,7 @@ const calculateDayOutcome = (event) => {
   const comboEffects = calculateComboEffects(dishes);
 
   const hypeFactor = 0.5 + state.hype / 120;
-  const leastPopularDemandBonus = Math.max(0, state.upgradeBonuses?.leastPopularItemDemandBonus || 0);
-  const effectivePopularity = avgPopularity * (1 + leastPopularDemandBonus);
-  const turnoutFactor = effectivePopularity * price.popularity * (1 + (event.effects.turnout || 0)) * comboEffects.demandMod;
+  const turnoutFactor = avgPopularity * price.popularity * (1 + (event.effects.turnout || 0)) * comboEffects.demandMod;
   const baseDemand = 12 + state.day * 2;
   const turnoutMultiplier = difficulty.turnoutMultiplier || 1;
   const potentialCustomers = baseDemand * hypeFactor * turnoutFactor * turnoutMultiplier;
@@ -4912,7 +3924,6 @@ const calculateDayOutcome = (event) => {
   const speedScore = clamp(state.truck.speed * avgSpeed * eventSpeed + helper.efficiency + state.staff.efficiency * 0.15 - (dishes.length - 1) * 0.07, 0.55, 1.35);
   let served = clamp(Math.round(customers * speedScore), 0, customers);
   let angry = Math.max(customers - served, 0);
-  const angryRatio = customers ? angry / customers : 0;
   let supplyShortfall = 0;
   const averageWait = clamp(Math.round(6 - speedScore * 3 + angry * 0.12), 2, 15);
   const pricePerTicket = price.price + avgMargin;
@@ -4926,18 +3937,10 @@ const calculateDayOutcome = (event) => {
 
   const qualityFactor = price.quality + helper.charm + state.staff.charm * 0.2;
   const ratingBase = 74 + (profit / 9) - angry * 1.8 + qualityFactor * 8 + (event.effects.rating || 0) + comboEffects.ratingMod + riskRatingShift;
-  const ratingCap = Math.max(60, Math.round(100 - clamp(angryRatio, 0, 0.5) * 80));
-  const rating = clamp(Math.round(ratingBase), 10, ratingCap);
+  const rating = clamp(Math.round(ratingBase), 10, 100);
   const hypeBase = (rating - 72) / 6 + (event.effects.hype || 0) + (comboEffects.hypeMod || 0) + riskHypeBoost;
-  const volatilityFactor = 1 + clamp((state.hype || 0) / 60, 0, 1);
-  const randomHypeSwing = Math.round((Math.random() - 0.5) * 6 * volatilityFactor);
-  const angryHypePenalty = Math.round(angryRatio * 12);
-  const hypeDeltaRaw = Math.round(hypeBase * (difficulty.hypeDeltaMultiplier || 1)) - angryHypePenalty + randomHypeSwing;
-  const hypeDelta = clamp(hypeDeltaRaw, -20, 20);
-  const hypeMomentumBonus = Math.round(Math.max(0, (state.hype || 0) - 45) / 10);
-  const repFromRating = Math.round((rating - 80) / 12);
-  const repAngryPenalty = Math.round(angryRatio * 8);
-  const repDelta = clamp(repFromRating + Math.round(hypeMomentumBonus * 0.4) - repAngryPenalty, -5, 5);
+  const hypeDelta = clamp(Math.round(hypeBase * (difficulty.hypeDeltaMultiplier || 1)), -20, 20);
+  const repDelta = clamp(Math.round((rating - 78) / 8), -6, 8);
   const selloutProgress = stockOnTruck > 0 && projectedDemand > stockOnTruck ? clamp((stockOnTruck / projectedDemand) * 100, 1, 100) : null;
 
   const outcome = {
@@ -4989,7 +3992,6 @@ const calculateDayOutcome = (event) => {
 const runServiceSimulation = (outcome) => {
   state.currentProgress = 0;
   state.serviceProgress = 0;
-  state.liveStatsBase = { progress: 0, served: 0, angry: 0, revenue: 0 };
   state.servicePaused = false;
   state.serviceMidpointCalled = false;
   state.serviceFinalCalled = false;
@@ -5000,9 +4002,6 @@ const runServiceSimulation = (outcome) => {
   updateCommandButtons();
   updatePauseButton();
   elements.serviceBar.style.width = '0%';
-  if (elements.serviceProgressLabel) {
-    elements.serviceProgressLabel.textContent = '0%';
-  }
   elements.serviceStatus.textContent = 'Tickets in queue. Watch the line.';
   logServiceMessage(`Event: ${outcome.event.title}`);
   scheduleServiceTick();
@@ -5134,12 +4133,7 @@ const concludeDay = (outcome) => {
   state.servicePaused = false;
   setPhase('results');
   applyProfileRiskAndReward(outcome);
-  const revenue = Math.round(outcome.revenue || 0);
-  state.money += revenue;
-  if (state.money < 0) {
-    triggerFailure('Bankrupt', 'Funds fell below zero at day end.');
-  }
-  updateHUD();
+  state.money += outcome.profit;
   state.hype = clamp(state.hype + outcome.hypeDelta, 0, 100);
   const hypeRange = state.upgradeBonuses?.hypeRandomRange;
   if (Array.isArray(hypeRange) && hypeRange.length === 2) {
@@ -5323,9 +4317,6 @@ const serviceTick = () => {
   state.serviceProgress = progress;
   state.currentProgress = progress;
   elements.serviceBar.style.width = `${progress}%`;
-  if (elements.serviceProgressLabel) {
-    elements.serviceProgressLabel.textContent = `${Math.round(progress)}%`;
-  }
   updateLiveStats();
   if (!state.serviceMidpointCalled && progress >= 50) {
     logServiceMessage('Halfway mark. Keep pace steady.');
@@ -5429,57 +4420,11 @@ const refreshEconomy = (outcome) => {
   outcome.profit = Math.round(outcome.revenue - outcome.expenses);
 };
 
-const getLiveStatsSnapshot = () => {
-  if (!state.activeOutcome) {
-    return { served: 0, angry: 0, wait: 0, revenue: 0 };
-  }
-  const base = state.liveStatsBase || { progress: 0, served: 0, angry: 0, revenue: 0 };
-  const currentProgress = clamp(Number(state.currentProgress) || 0, 0, 100);
-  const baseProgress = clamp(Number(base.progress) || 0, 0, 100);
-  const cappedProgress = clamp(Math.max(currentProgress, baseProgress), baseProgress, 100);
-  const span = Math.max(100 - baseProgress, 0);
-  const offset = Math.max(0, cappedProgress - baseProgress);
-  const ratio = span > 0 ? Math.min(offset / span, 1) : 1;
-  const outcomeServed = Number.isFinite(state.activeOutcome.served) ? state.activeOutcome.served : 0;
-  const outcomeAngry = Number.isFinite(state.activeOutcome.angry) ? state.activeOutcome.angry : 0;
-  const outcomeRevenue = Number.isFinite(state.activeOutcome.revenue) ? state.activeOutcome.revenue : 0;
-  const served = Math.round(base.served + (outcomeServed - base.served) * ratio);
-  const angry = Math.round(base.angry + (outcomeAngry - base.angry) * ratio);
-  const revenue = Math.round(base.revenue + (outcomeRevenue - base.revenue) * ratio);
-  const clampServed = Math.max(base.served, served);
-  const clampAngry = Math.max(base.angry, angry);
-  const clampRevenue = Math.max(base.revenue, revenue);
-  return {
-    served: Math.min(clampServed, Math.max(base.served, outcomeServed)),
-    angry: Math.min(clampAngry, Math.max(base.angry, outcomeAngry)),
-    revenue: Math.min(clampRevenue, Math.max(base.revenue, outcomeRevenue)),
-    wait: state.activeOutcome.averageWait ?? 0,
-  };
-};
-
-const captureLiveStatsSnapshot = () => {
-  const snapshot = getLiveStatsSnapshot();
-  state.liveStatsBase = {
-    progress: clamp(Number(state.currentProgress) || 0, 0, 100),
-    served: snapshot.served,
-    angry: snapshot.angry,
-    revenue: snapshot.revenue,
-  };
-};
-
-const enforceLiveOutcomeMinimums = () => {
-  if (!state.activeOutcome || !state.liveStatsBase) return;
-  state.activeOutcome.served = Math.max(state.activeOutcome.served || 0, state.liveStatsBase.served || 0);
-  state.activeOutcome.angry = Math.max(state.activeOutcome.angry || 0, state.liveStatsBase.angry || 0);
-  state.activeOutcome.revenue = Math.max(state.activeOutcome.revenue || 0, state.liveStatsBase.revenue || 0);
-};
-
 const applyLivePricePoint = (price) => {
   if (!state.simRunning || !state.activeOutcome || !price) return;
   const outcome = state.activeOutcome;
   const previousPrice = outcome.price || PRICE_POINTS.street;
   if (previousPrice.id === price.id) return;
-  captureLiveStatsSnapshot();
   const avgMargin = outcome.pricePerTicket - previousPrice.price;
   const demand = outcome.projectedDemand || outcome.served + outcome.angry;
   const prevServed = outcome.served;
@@ -5497,10 +4442,8 @@ const applyLivePricePoint = (price) => {
   outcome.projectedAngry = projectedAngry;
   outcome.rating = clamp(Math.round(outcome.rating + qualityDiff * 6 - angryDelta * 0.3), 10, 100);
   outcome.hypeDelta = clamp(Math.round(outcome.hypeDelta + qualityDiff * 4 + servedDelta * 0.04), -12, 20);
-  outcome.repDelta = clamp(Math.round(outcome.repDelta + qualityDiff * 2 - angryDelta * 0.05), -10, 12);
-  enforceLiveOutcomeMinimums();
+  outcome.repDelta = clamp(Math.round(outcome.repDelta + qualityDiff * 3 - angryDelta * 0.03), -10, 12);
   refreshEconomy(outcome);
-  enforceLiveOutcomeMinimums();
   updateLiveStats();
   updateResultsUI(outcome);
 };
@@ -5513,30 +4456,25 @@ const recalcSupplyShortfall = (outcome, options = {}) => {
 
 const updateLiveStats = () => {
   if (!state.activeOutcome) return;
-  const stats = getLiveStatsSnapshot();
+  const ratio = state.currentProgress / 100;
   updateServiceStats({
-    served: stats.served,
-    angry: stats.angry,
-    wait: stats.wait,
-    revenue: stats.revenue,
+    served: Math.round(state.activeOutcome.served * ratio),
+    angry: Math.round(state.activeOutcome.angry * ratio),
+    wait: state.activeOutcome.averageWait,
+    revenue: Math.round(state.activeOutcome.revenue * ratio),
   });
 };
 
 const updateCommandButtons = () => {
   if (!elements.commandButtons || elements.commandButtons.size === 0) return;
   elements.commandButtons.forEach((button, commandId) => {
-    const command = SERVICE_COMMANDS[commandId];
-    const unlocked = isCommandUnlocked(command);
     const used = state.serviceCommandsUsed?.has(commandId);
     const cooldown = getCommandCooldown(commandId);
-    const disabled = !state.simRunning || used || state.servicePaused || state.gameOver || cooldown > 0 || !unlocked;
+    const disabled = !state.simRunning || used || state.servicePaused || state.gameOver || cooldown > 0;
     button.disabled = disabled;
-    button.classList.toggle('locked', !unlocked);
     const status = button.querySelector('[data-status]');
     if (status) {
-      if (!unlocked) {
-        status.textContent = 'Locked';
-      } else if (cooldown > 0) {
+      if (cooldown > 0) {
         status.textContent = `Cooldown ${cooldown}d`;
       } else if (used && state.simRunning) {
         status.textContent = 'Used';
@@ -5569,25 +4507,16 @@ const updatePauseButton = () => {
 
 const handleServiceCommand = (commandId) => {
   if (!state.simRunning || !state.activeOutcome || state.servicePaused || state.gameOver) return;
-  const command = SERVICE_COMMANDS[commandId];
-  if (!command) return;
-  if (!isCommandUnlocked(command)) {
-    logServiceMessage(`${command.label || 'Command'} locked until upgrade installed.`);
-    return;
-  }
-  if (state.serviceCommandsUsed.has(commandId)) return;
+  if (!SERVICE_COMMANDS[commandId] || state.serviceCommandsUsed.has(commandId)) return;
   if (isCommandCoolingDown(commandId)) {
     const turns = getCommandCooldown(commandId);
     logServiceMessage(`${SERVICE_COMMANDS[commandId].label} cooling down (${turns} day${turns === 1 ? '' : 's'} left).`);
     return;
   }
   state.serviceCommandsUsed.add(commandId);
-  captureLiveStatsSnapshot();
   applyCommandEffect(commandId, state.activeOutcome);
-  enforceLiveOutcomeMinimums();
   armCommandCooldown(commandId);
   refreshEconomy(state.activeOutcome);
-  enforceLiveOutcomeMinimums();
   state.activeOutcome.rating = clamp(state.activeOutcome.rating, 10, 100);
   state.activeOutcome.hypeDelta = clamp(state.activeOutcome.hypeDelta, -12, 20);
   state.activeOutcome.repDelta = clamp(state.activeOutcome.repDelta, -10, 12);
@@ -5625,91 +4554,6 @@ const applyCommandEffect = (commandId, outcome) => {
     }
     case 'tropical-push': {
       applyTropicalPush(outcome);
-      break;
-    }
-    case 'restockSupply': {
-      const bonuses = state.upgradeBonuses || createUpgradeBonusState();
-      const room = Math.max(getSupplyCapacityLimit() - inventoryManager.units, 0);
-      const restockUnits = bonuses.command_restock_fullService
-        ? room
-        : Math.min(room, Math.max(0, bonuses.command_restock_units || 0));
-      if (restockUnits <= 0) {
-        logServiceMessage('Supply Grab: no room left on the truck right now.');
-        break;
-      }
-      const added = inventoryManager.restock(restockUnits);
-      if (added <= 0) {
-        logServiceMessage('Supply Grab: could not pull any extra stock.');
-        break;
-      }
-      const unitCost = getSupplyUnitCost();
-      const cost = Math.round(added * unitCost);
-      state.money = clamp(state.money - cost, -9999, 9999);
-      const active = state.activeOutcome;
-      if (active) {
-        active.extraExpenses = (active.extraExpenses || 0) + cost;
-        active.expenses = Math.round((active.expenses || 0) + cost);
-        active.profit = Math.round((active.revenue || 0) - active.expenses);
-        active.stockOnTruck = inventoryManager.units;
-        active.leftoverUnits = inventoryManager.units;
-      }
-      logServiceMessage(`Supply Grab: added ${formatUnits(added)} for ${currency(cost)}.`);
-      updateHUD();
-      updateSupplyUI();
-      break;
-    }
-    case 'rallyStaff': {
-      const flowMultiplier = state.upgradeBonuses?.command_rallyStaff_flowMultiplier || 1.2;
-      const demandCap = outcome.projectedDemand || outcome.served + outcome.angry;
-      const maxServed = Math.min(demandCap, Math.round(outcome.served * flowMultiplier));
-      const extraServed = Math.max(0, maxServed - outcome.served);
-      outcome.served = maxServed;
-      outcome.angry = Math.max(0, outcome.angry - Math.round(extraServed * 0.35));
-      outcome.averageWait = clamp(outcome.averageWait - 1, 2, 18);
-      outcome.revenue = Math.round(outcome.revenue + extraServed * outcome.pricePerTicket);
-      outcome.rating = clamp(outcome.rating + 2, 10, 100);
-      logServiceMessage('Rally Staff: flow spiked and the line tamed extra guests.');
-      break;
-    }
-    case 'featureDish': {
-      const demandMultiplier = state.upgradeBonuses?.command_featureDish_demandMultiplier || 1.25;
-      const demandPool = outcome.projectedDemand || outcome.served + outcome.angry;
-      const extraDemand = Math.max(0, Math.round(demandPool * (demandMultiplier - 1)));
-      const availableSeats = Math.max(0, (outcome.projectedDemand || demandPool) - outcome.served);
-      const extraServed = Math.min(availableSeats, extraDemand);
-      if (extraServed > 0) {
-        outcome.served += extraServed;
-        outcome.revenue = Math.round(outcome.revenue + extraServed * outcome.pricePerTicket);
-        outcome.angry = Math.max(0, outcome.angry - Math.round(extraServed * 0.45));
-        outcome.hypeDelta = clamp(outcome.hypeDelta + 3, -20, 20);
-        outcome.rating = clamp(outcome.rating + 3, 10, 100);
-        const favorite = (outcome.lineup || []).reduce((best, dish) => {
-          if (!dish) return best;
-          if (!best || (dish.popularity || 0) > (best.popularity || 0)) return dish;
-          return best;
-        }, null);
-        logServiceMessage(`Feature Dish: ${favorite?.name || 'star dish'} demand spiked and more guests stayed.`);
-      } else {
-        logServiceMessage('Feature Dish: demand already maxed, but the promo kept hype steady.');
-      }
-      break;
-    }
-    case 'lunchRushFocus': {
-      const lossMultiplier = state.upgradeBonuses?.command_lunchRushFocus_lineLossMultiplier || 0.8;
-      const preservedAngry = Math.round(outcome.angry * lossMultiplier);
-      const freedCustomers = Math.max(0, outcome.angry - preservedAngry);
-      const seatsLeft = Math.max(0, (outcome.projectedDemand || outcome.served + outcome.angry) - outcome.served);
-      const pickedUp = Math.min(seatsLeft, freedCustomers);
-      outcome.angry = preservedAngry;
-      if (pickedUp > 0) {
-        outcome.served += pickedUp;
-        outcome.revenue = Math.round(outcome.revenue + pickedUp * outcome.pricePerTicket);
-        outcome.hypeDelta = clamp(outcome.hypeDelta + 2, -20, 20);
-        outcome.rating = clamp(outcome.rating + 2, 10, 100);
-        logServiceMessage('Lunch Rush Focus: line loss trimmed and more diners served.');
-      } else {
-        logServiceMessage('Lunch Rush Focus: calm authority kept the line intact.');
-      }
       break;
     }
     default:
@@ -5750,6 +4594,7 @@ const finalizeInventory = (outcome) => {
       outcome.repDelta = clamp(outcome.repDelta - 10, -20, 20);
       state.reputation = clamp(state.reputation - 12, 0, 100);
       state.hype = clamp(state.hype - 8, 0, 100);
+      state.strikes = Math.min(3, state.strikes + 1);
       logServiceMessage('Spoiled stock triggered health reports. Reputation tanked.');
     }
   }
@@ -5771,16 +4616,28 @@ const evaluateDayRisk = (outcome) => {
       state.money -= state.loanPrincipal;
       state.loanPaid = true;
       state.loanPrincipal = 0;
-      logServiceMessage(`Loan repaid on Day ${state.day}: ${currency(paid)} deducted.`);
+      logServiceMessage(`Loan repaid on Day ${state.day}: ${currency(paid)} deducted. No strike earned.`);
     } else {
       state.loanDefaulted = true;
       state.loanPrincipal = 0;
-      logServiceMessage(`Loan default! Could not repay by Day ${state.loanDueDay}. Danger creeps up.`);
-      applyDangerEvent(LOAN_DEFAULT_EVENT);
+      state.strikes = Math.min(3, state.strikes + 1);
+      logServiceMessage(`Loan default! Could not repay by Day ${state.loanDueDay}. One strike added.`);
     }
   }
 
-  evaluateDangerConsequences(outcome);
+  // --- existing daily strike logic ---
+  let strikesEarned = 0;
+  const angryRatio = outcome.served ? outcome.angry / outcome.served : outcome.angry > 0 ? 1 : 0;
+  const angryThreshold = clamp(0.4 * (state.difficulty?.angryTolerance || 1), 0.1, 0.9);
+
+  if (outcome.profit <= 0) strikesEarned += 1;
+  if (angryRatio >= angryThreshold) strikesEarned += 1;
+  if (outcome.rating < 65) strikesEarned += 1;
+
+  if (strikesEarned) {
+    state.strikes = Math.min(3, state.strikes + strikesEarned);
+    logServiceMessage(`Warning: ${strikesEarned} strike${strikesEarned > 1 ? 's' : ''} added.`);
+  }
 
   // --- failure conditions ---
   let reason = null;
@@ -5789,6 +4646,15 @@ const evaluateDayRisk = (outcome) => {
   if (state.money < 0) {
     reason = 'Bankrupt';
     detail = 'Cash dipped below zero.';
+  } else if (state.reputation <= 10) {
+    reason = 'Reputation Burned';
+    detail = 'Critics dropped you after too many rough days.';
+  } else if (state.hype <= 5) {
+    reason = 'Hype Flatlined';
+    detail = 'No crowd left to serve.';
+  } else if (state.strikes >= 3) {
+    reason = 'Three Strikes';
+    detail = 'Too many losses and upset guests.';
   }
 
   if (reason) {
@@ -5800,7 +4666,7 @@ const evaluateDayRisk = (outcome) => {
 
 const handleLossVideo = (reason) => {
   if (!elements.lossVideo || !elements.failOverlay) return;
-  const shouldPlay = reason === 'Bankrupt';
+  const shouldPlay = reason === 'Three Strikes';
   elements.failOverlay.classList.toggle('video-active', shouldPlay);
   if (elements.failVideoOverlay) {
     elements.failVideoOverlay.setAttribute('aria-hidden', shouldPlay ? 'false' : 'true');
